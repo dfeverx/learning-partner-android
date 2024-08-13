@@ -1,0 +1,32 @@
+<defaults>
+    <entry>
+        <key>YEARLY</key>
+        <value>{ "label":"Unleash", "features":["Ad free","Up to 10 page per notes","Best quality"]
+            }
+        </value>
+    </entry>
+    <entry>
+        <key>QUARTERLY</key>
+        <value>{"label":"Noobie","features":["Ad free","Up to 3 page per notes ","Good quality"]}
+        </value>
+    </entry>
+    <entry>
+        <key>MONTHLY</key>
+        <value>{"label":"Elevate","features":["Ad free","Up to 6 page per notes","Better
+            quality"]}
+        </value>
+    </entry>
+
+    <entry>
+        <key>OUT_SIDE_TRANSALATION_ENABLED</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>IS_PREMIUM_PLAN_VISIBLE</key>
+        <value>false</value>
+    </entry>
+    <entry>
+        <key>AD_ENABLED</key>
+        <value>true</value>
+    </entry>
+</defaults>

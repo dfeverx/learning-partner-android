@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">Study Partner</string>
+    <string name="app_name">Ninaiva</string>
+    <string name="web_client_id">466580214629-v9b3r70e9tmbd135vf904fdideh32pc9.apps.googleusercontent.com</string>
+    <string name="study_note_uploading_notification_channel_id">default notification channel</string>
+    <string name="study_note_uploading_notification_name">Uploading notes</string>
+    <string name="study_note_uploading_notification_description">All notification related to study note processing shows form this channel</string>
+    <string name="scheduled_notification_channel_id">scheduled notification\n</string>
+    <string name="scheduled_notification_name">Attempt notification\n</string>
+    <string name="scheduled_notification_description">Notify you about the next attempt level</string>
 </resources>
