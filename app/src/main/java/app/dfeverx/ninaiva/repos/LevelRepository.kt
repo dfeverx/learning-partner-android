@@ -101,12 +101,12 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
         }
     }
 
-    private fun updateStudyNoteInFirestore(
+    fun updateStudyNoteInFirestore(
         studyNoteId: String,
-        stage: Int,
-        nextLevelIn: Long,
-        score: Int,
-        accuracy: Int
+        stage: Int = 1,
+        nextLevelIn: Long = 0,
+        score: Int = 0,
+        accuracy: Int = 0
     ) {
         val firestore = Firebase.firestore
         val uid = Firebase.auth.currentUser?.uid ?: return

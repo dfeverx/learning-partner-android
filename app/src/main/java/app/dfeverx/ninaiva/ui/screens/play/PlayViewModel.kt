@@ -1,9 +1,11 @@
 package app.dfeverx.ninaiva.ui.screens.play
 
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.dfeverx.ninaiva.LearningPartnerApplication
 import app.dfeverx.ninaiva.models.local.Option
 import app.dfeverx.ninaiva.repos.PlayRepository
 import com.google.gson.Gson
@@ -14,17 +16,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class PlayViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    application: LearningPartnerApplication,
     private val playRepository: PlayRepository
 ) : ViewModel() {
 
     private val TAG = "PlayViewModel"
     private val levelId: Long = checkNotNull(savedStateHandle["levelId"])
     private val stage: Int = checkNotNull(savedStateHandle["stage"])
+    private lateinit var tts: TextToSpeech
+    private val _isReadingStateFlow: MutableStateFlow<Boolean> =
+        MutableStateFlow(false)
+
+    val isReadingStateFlow: StateFlow<Boolean>
+        get() = _isReadingStateFlow
 
     private val _uiState = MutableStateFlow(PlayUiState(stage))
     val uiState: StateFlow<PlayUiState> = _uiState.asStateFlow()
@@ -40,6 +50,19 @@ class PlayViewModel @Inject constructor(
                 )
             }
 
+        }
+        tts = TextToSpeech(
+            application
+        ) {
+            if (it == TextToSpeech.SUCCESS) {
+                val result = tts.setLanguage(Locale.US)
+
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "This language is not supported")
+                }
+            } else {
+                Log.e("TTS", "Initialization failed")
+            }
         }
     }
 
@@ -84,5 +107,38 @@ class PlayViewModel @Inject constructor(
         }
     }
 
+
+    fun readLoud() {
+//        if (_isReadingStateFlow.value) {
+            val question = _uiState.value.questions?.get(_uiState.value.currentQuestionIndex)
+            val questionPayload =
+                question?.statement+" ?." + question?.options?.mapIndexed { i, item -> "Option " + (i + 1) + "." + item.content + "/n" }
+            tts.speak(
+                questionPayload.removeSpecialCharacters(),
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                null
+            )
+//        } else {
+//            tts.stop()
+//            _isReadingStateFlow
+//        }
+    }
+
+    private fun String.removeSpecialCharacters(): String {
+        val tempChar = '!' // Temporary character to replace line breaks
+        val replacedText =
+            this.replace("\n", tempChar.toString()) // Replace line breaks with temp char
+        val regex = Regex("[^a-zA-Z0-9 .${tempChar}]") // Include temp char in allowed characters
+        val filteredText = regex.replace(replacedText, "") // Remove special characters
+        return filteredText.replace(tempChar.toString(), "\n")
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        tts.stop()
+        tts.shutdown()
+
+    }
 
 }

@@ -60,7 +60,7 @@ class CreditAndSubscriptionDataStore(
     suspend fun sync(forced: Boolean = false) {
 //        todo: check already synced
 //        todo: forced sync
-        Log.d(TAG, "sync: ...")
+        Log.d(TAG, "sync credit subs: ...")
         if (auth.currentUser?.uid.isNullOrEmpty()) {
             return
         }

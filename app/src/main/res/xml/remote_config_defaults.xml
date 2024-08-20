@@ -1,18 +1,18 @@
 <defaults>
     <entry>
         <key>YEARLY</key>
-        <value>{ "label":"Unleash", "features":["Ad free","Up to 10 page per notes","Best quality"]
+        <value>{ "label":"Unleash", "features":["Ad free","Import from gallery","Best quality"]
             }
         </value>
     </entry>
     <entry>
         <key>QUARTERLY</key>
-        <value>{"label":"Noobie","features":["Ad free","Up to 3 page per notes ","Good quality"]}
+        <value>{"label":"Elevate","features":["Ad free","Import from gallery ","Good quality"]}
         </value>
     </entry>
     <entry>
         <key>MONTHLY</key>
-        <value>{"label":"Elevate","features":["Ad free","Up to 6 page per notes","Better
+        <value>{"label":"Newbie","features":["Ad free","Import from gallery","Better
             quality"]}
         </value>
     </entry>

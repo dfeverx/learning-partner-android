@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -64,7 +65,9 @@ fun Upgrade(navController: NavController) {
     val lazyGridState = rememberLazyListState()
     val scrollBehavior =
         TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), topBar = {
+    Scaffold(modifier = Modifier
+        .nestedScroll(scrollBehavior.nestedScrollConnection)
+        .navigationBarsPadding(), topBar = {
         TopAppBar(
             navigationIcon = {
                 Icon(
@@ -304,7 +307,8 @@ fun PriceList(
                         ?: "",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = paddingModifier,
-                    textAlign = TextAlign.End
+                    textAlign = TextAlign.End,
+                    maxLines = 1
                 )
                 Text(
                     text = subscriptionOfferDetails.basePlanId.replace(Regex("\\d+"), ""),

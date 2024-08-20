@@ -18,7 +18,7 @@ data class PlayUiState(
             this.score += 1
         } else {
 //            score not less than 0
-            if (this.score > 0 && isNegativeScoreForWrongAttemptEnabled) {
+            if (/*this.score > 0 && */isNegativeScoreForWrongAttemptEnabled) {
                 this.score -= 1
             }
         }

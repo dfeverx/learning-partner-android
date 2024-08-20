@@ -86,8 +86,11 @@ class StreakDataStore(
             .document("v1")
             .set(
                 streakInfoFlow
-
-            ).await()
+            ).addOnSuccessListener {
+                Log.d(TAG, "incrementStreak: success")
+            }.addOnFailureListener {
+                Log.d(TAG, "incrementStreak: failure $it")
+            }
 
 
     }

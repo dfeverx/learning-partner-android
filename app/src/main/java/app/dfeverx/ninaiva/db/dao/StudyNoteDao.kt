@@ -54,6 +54,9 @@ interface StudyNoteDao {
     @Query("UPDATE study_notes SET docLocalUrl = :absolutePath  WHERE id=:studyNoteId")
     fun updateLocalDoc(studyNoteId: String, absolutePath: String): Int
 
+    @Query("UPDATE study_notes SET docUrl = :storagePath  WHERE id=:noteId")
+    suspend fun updatePdfStoragePath(noteId: String, storagePath: String): Int
+
     @Query("UPDATE study_notes SET isProcessing = :isProcessing  WHERE id=:id")
     suspend fun retrying(id: String, isProcessing: Boolean): Int
 
@@ -84,7 +87,7 @@ interface StudyNoteDao {
     ): Int
 
     @Query("SELECT COUNT(*) FROM study_notes")
-     fun allStudyNoteCount(): Flow<Int>
+    fun allStudyNoteCount(): Flow<Int>
 
 
 }

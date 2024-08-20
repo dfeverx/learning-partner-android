@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun ClickableItem(item: ClickableItem, navigateTo: (String) -> Unit) {
+    if (item.title == "") {
+        return
+    }
     Row(
         modifier = Modifier
             .clickable { navigateTo(item.route) }

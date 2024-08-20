@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.SpeakerPhone
+import androidx.compose.material.icons.outlined.VolumeUp
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -66,7 +67,6 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import kotlinx.coroutines.flow.first
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,6 +137,9 @@ fun Play(navController: NavController) {
                         modifier = Modifier.padding(it),
                         question = it1,
                         attempts = playUiState.attempt,
+                        readLoud = {
+                            playViewModel.readLoud()
+                        },
                         handleAttempt = playViewModel::handleOptionSelection
                     )
                 }
@@ -170,8 +173,7 @@ fun Play(navController: NavController) {
                 if (playUiState.totalQuestionSize - 1 == playUiState.currentQuestionIndex) {
                     navController.popBackStack()/*/{levelId}/{score}/{attemptCount}/{totalNumberOfQuestions}/{stage}*/
                     navController.navigate(Screens.Statistics.route + "/${noteId}/" + levelId + "/" + playUiState.score + "/" + playUiState.totalQuestionsAttempted + "/" + playUiState.totalQuestionSize + "/" + playUiState.stage + "/" + isRevision)
-                    if ((!mainViewModel.directScanEligible()) && playUiState.stage > 2) {
-
+                    if (mainViewModel.isAdEnabled()) {
                         activity.showAd()
                     }
                 }
@@ -190,7 +192,7 @@ fun Play(navController: NavController) {
                     if (playUiState.totalQuestionSize - 1 == playUiState.currentQuestionIndex) {
                         navController.popBackStack()/*/{levelId}/{score}/{attemptCount}/{totalNumberOfQuestions}/{stage}*/
                         navController.navigate(Screens.Statistics.route + "/${noteId}/" + levelId + "/" + playUiState.score + "/" + playUiState.totalQuestionsAttempted + "/" + playUiState.totalQuestionSize + "/" + playUiState.stage + "/" + isRevision)
-                        if ((!mainViewModel.directScanEligible()) && playUiState.stage > 2) {
+                        if (mainViewModel.isAdEnabled()) {
                             activity.showAd()
                         }
                     }
@@ -203,13 +205,17 @@ fun Play(navController: NavController) {
 
 @Composable
 fun MCQPlay(
-    modifier: Modifier, question: Question, attempts: List<Option>, handleAttempt: (Option) -> Unit
+    modifier: Modifier,
+    question: Question,
+    attempts: List<Option>,
+    readLoud: () -> Unit,
+    handleAttempt: (Option) -> Unit
 ) {
     Column(modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp)) {
         Row {
-            Button(modifier = Modifier.height(32.dp), onClick = { /*TODO*/ }) {
+            Button(modifier = Modifier.height(32.dp), onClick = { readLoud() }) {
                 Icon(
-                    Icons.Outlined.SpeakerPhone,
+                    Icons.Outlined.VolumeUp,
                     "Read loud",
                     modifier = Modifier
 //                        .padding(start = 8.dp)

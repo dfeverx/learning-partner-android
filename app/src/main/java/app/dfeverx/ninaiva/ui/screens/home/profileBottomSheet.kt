@@ -49,11 +49,18 @@ fun UserProfileBottomSheetContent(
     val listItems = if (/*artWorkViewModel.isPremiumPlanVisible()*/isUserProfile) {
         listOf(
 //            ClickableItem(title = "History", icon = Icons.Outlined.History, route = ""),
-            if (mainViewModel.isPro.collectAsState().value) ClickableItem(
+
+
+            if (mainViewModel.isPro.collectAsState().value && mainViewModel.auth.currentUser?.isAnonymous != true) ClickableItem(
                 title = "Subscription",
                 icon = Icons.Outlined.Payment,
                 route = ""
-            ) else ClickableItem(title = "Upgrade", icon = Icons.Outlined.ElectricBolt, route = ""),
+            ) else if (mainViewModel.auth.currentUser?.isAnonymous != true)
+                ClickableItem(
+                    title = "Upgrade",
+                    icon = Icons.Outlined.ElectricBolt,
+                    route = ""
+                ) else ClickableItem(title = "", icon = Icons.Outlined.ElectricBolt, route = ""),
             ClickableItem(title = "Feedback", icon = Icons.Outlined.Feedback, route = ""),
             ClickableItem(title = "Share", icon = Icons.Outlined.Share, route = ""),
         )
@@ -160,6 +167,8 @@ fun UserProfileBottomSheetContent(
                             )
                         )
                     }
+
+                    else -> {}
                 }
             })
         }

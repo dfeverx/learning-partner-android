@@ -73,11 +73,17 @@ class MainActivity : ComponentActivity() {
         private val TAG = "MainActivity"
         var appUpdateManager: AppUpdateManager? = null
         suspend fun Activity.startUpdate(appUpdateInfo: AppUpdateInfo): Int? {
-            return appUpdateManager?.startUpdateFlow(
-                appUpdateInfo, this, AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE)
+            try {
+                return appUpdateManager?.startUpdateFlow(
+                    appUpdateInfo, this, AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE)
 //                        .setAllowAssetPackDeletion(true)
-                    .build()
-            )?.await()
+                        .build()
+                )?.await()
+            } catch (e: Exception) {
+                Log.d(TAG, "startUpdate: exception while inapp update $e")
+                return null
+            }
+
         }
 
         suspend fun installUpdate(): Void? {

@@ -96,8 +96,21 @@ class StudyNoteRepository @Inject constructor(private val appDatabase: AppDataba
 
     }
 
+    suspend fun updateNoteStatus(noteId: String, status: Int, isProcessing: Boolean) {
+        appDatabase.studyNotesDao().updateFailed(
+            studyNoteId = noteId,
+            status = status,
+            isProcessing = isProcessing
+        )
+    }
+
     fun allStudyNoteCount(): Flow<Int> {
         return appDatabase.studyNotesDao().allStudyNoteCount()
+    }
+
+   suspend fun updatePdfStoragePath(noteId: String, storagePath: String): Int {
+        return appDatabase.studyNotesDao()
+            .updatePdfStoragePath(noteId = noteId, storagePath = storagePath)
     }
 
 

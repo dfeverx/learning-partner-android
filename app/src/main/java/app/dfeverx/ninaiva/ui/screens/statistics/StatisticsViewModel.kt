@@ -16,6 +16,7 @@ import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.getTimePeriod
 import app.dfeverx.ninaiva.utils.scheduleNotificationForNextAttempt
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -54,6 +55,7 @@ class StatisticsViewModel @Inject constructor(
                 score = score,
                 accuracy = accuracy,
                 isSuccessfulAttempt = accuracy >= MINIMUM_THRESHOLD_ACCURACY_FOR_NEXT_LEVEL,
+//                levelOverAllProgress =((noteDetails.currentStage - 1)) / noteDetails.totalLevel.toFloat()
             )
         )
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
@@ -63,12 +65,18 @@ class StatisticsViewModel @Inject constructor(
         viewModelScope.launch {
 //            minimum accuracy threshold for creating new level is 60% accuracy other wise show failed retry
             if (accuracy >= MINIMUM_THRESHOLD_ACCURACY_FOR_NEXT_LEVEL) {
-                giveStreak(noteId)
+
                 val nextAttemptUnix = calculateNextAttempt()
                 if (nextAttemptUnix == null) {
                     Log.d(TAG, "nextAttemptUnix: $nextAttemptUnix")
                     return@launch
                 }
+                try {
+                    giveStreak(noteId)
+                } catch (e: Exception) {
+                    Log.d(TAG, "giveStreak Error: $e     ")
+                }
+
                 val levelCreationResult =
                     levelRepository.createNewLevelOnlyIfNotExist(
                         studyNoteId = noteId,
@@ -90,43 +98,16 @@ class StatisticsViewModel @Inject constructor(
                 )
                 Log.d(TAG, "Init: level creation $levelCreationResult")
 
+
             }
+        }
+
+        viewModelScope.launch (Dispatchers.IO){
+            val studyNote = levelRepository.studyNoteById(noteId)
+            _uiState.value = _uiState.value.copy(levelOverAllProgress = ((studyNote.currentStage - 1)) / studyNote.totalLevel.toFloat())
         }
     }
 
-    private fun scheduleNotificationForNextAttempt(nextAttemptUnix: Long, noteId: String) {
-        val intent = Intent(application, OnAlarmTriggeredReceiver::class.java).apply {
-            this.putExtra("noteId", noteId)
-        }
-
-        val pendingIntent =
-            PendingIntent.getBroadcast(
-                application, noteId.hashCode(),
-                intent,
-                PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d(
-                TAG,
-                "scheduleNotificationForNextAttempt: ${alarmManager.canScheduleExactAlarms()}"
-            )
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    nextAttemptUnix,
-                    pendingIntent
-                )
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                nextAttemptUnix,
-                pendingIntent
-            )
-        }
-    }
 
     private suspend fun giveStreak(noteId: String) {
 //        todo: update local , firestore

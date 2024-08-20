@@ -25,6 +25,14 @@ class StudyNote(
     var srcLng: List<String> = listOf(),
     var totalLevel: Int = 5,
     var status: Int = 0
+
+    /*
+    * -100 : local pdf file corrupted
+    * -101 : uploading pdf..
+    * -102 : upload pdf to firebase storage failed
+    * -103 : fun calling..
+    * -104 : fun call failed
+    *  */
 ) {
     @Ignore
     var isPlaceholder: Boolean = false
@@ -59,3 +67,8 @@ class StudyNote(
 
 }
 
+const val NOTE_PROCESSING_LOCAL_FILE_CORRUPTED= -100
+const val NOTE_PROCESSING_UPLOADING_PDF= -101
+const val NOTE_PROCESSING_UPLOADING_PDF_FAILED= -102
+const val NOTE_PROCESSING_FUN_CALLING= -103
+const val NOTE_PROCESSING_FUN_CALLING_FAILED= -104

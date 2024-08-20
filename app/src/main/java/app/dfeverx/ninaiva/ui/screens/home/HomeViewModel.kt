@@ -10,18 +10,23 @@ import androidx.compose.material.icons.outlined.LibraryBooks
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StickyNote2
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.dfeverx.ninaiva.datastore.CreditAndSubscriptionDataStore
 import app.dfeverx.ninaiva.models.CreditAndSubscriptionInfo
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_FUN_CALLING
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_LOCAL_FILE_CORRUPTED
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_UPLOADING_PDF
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_UPLOADING_PDF_FAILED
 import app.dfeverx.ninaiva.models.local.StudyNote
 import app.dfeverx.ninaiva.models.remote.FunResponse
 import app.dfeverx.ninaiva.models.remote.StudyNoteWithQuestionsFirestore
 import app.dfeverx.ninaiva.repos.HomeRepository
 import app.dfeverx.ninaiva.repos.StudyNoteRepository
+import app.dfeverx.ninaiva.utils.FileUtils
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.getTimePeriod
-import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
@@ -183,7 +188,7 @@ class HomeViewModel @Inject constructor(
             .setGalleryImportAllowed(isPro)
             .setPageLimit(if (isAnonymousUser()) 1 else if (isPro) 3 else 2)
             .setResultFormats(
-//            GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
+                GmsDocumentScannerOptions.RESULT_FORMAT_JPEG,
                 GmsDocumentScannerOptions.RESULT_FORMAT_PDF
             )
             .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_BASE)
@@ -205,215 +210,182 @@ class HomeViewModel @Inject constructor(
         _selectedCategory.value = value
     }
 
-    /*    fun createStudyNoteFromPdf(pdfUri: Uri) {
-    //        todo:must have auth before continue
-            val currentMilliUnix = System.currentTimeMillis()
-
-            val studyNoteRef =
-                firestore
-                    .collection("users")
-                    .document(auth.currentUser?.uid!!)
-                    .collection("notes").document()
-
-            val studyNoteId = studyNoteRef.id
-            val firebaseStoragePath =
-                "uploads/${auth.currentUser?.uid}/docs/${studyNoteId}/${pdfUri.lastPathSegment}"
-
-            Log.d(TAG, "addNote: $pdfUri")
-
-            viewModelScope.launch(Dispatchers.IO) {
-    //            insert to local db
-                val r = homeRepository.addNote(studyNoteId, pdfUri)
-
-    //            upload to firebase storage
-                val storageReference =
-                    storage.reference.child(firebaseStoragePath)
-
-                val metadata = storageMetadata {
-                    *//*setCustomMetadata("pages", " 3")
-                setCustomMetadata("srcLng", "en,ml")*//*
-            }
-
-            val uploadTask = storageReference.putFile(pdfUri, metadata)
-            uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress =
-                    (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
-                println("Upload is $progress% done")
-            }
-            val uploadResult = uploadTask.await()
-            if (uploadResult.task.isSuccessful) {
-                Log.d(TAG, "uploadPdf: success $uploadResult")
-
-//              update to local status
-                homeRepository.updateStatusOfStudyNote(studyNoteId, 0)
-                val payload = hashMapOf(
-                    "noteId" to studyNoteId,
-                    "docUrl" to firebaseStoragePath,
-                )
-//             call function
-                val processNoteCall = functions
-                    .getHttpsCallable("processNote") {
-//                        limitedUseAppCheckTokens = true
-
-                    }
-
-                try {
-
-                    val result = processNoteCall.call(payload)
-                        .await()
-
-
-                    if (result.data == null) {
-                        Log.d(TAG, "uploadPdf:processNote call no result found ")
-                        return@launch
-                    }
-                    val hashMapResult = result.data
-                    Log.d(TAG, "createStudyNoteFromPdf: response data $hashMapResult")
-                    val json = gson.toJson(hashMapResult)
-                    Log.d(TAG, "createStudyNoteFromPdf: response data json $json")
-                    val resultStudyNoteWithQuestions =
-                        gson.fromJson(json, StudyNoteWithQuestionsFirestore::class.java)
-                    resultStudyNoteWithQuestions?.apply {
-                        id = studyNoteId
-                    }
-                    studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(
-                        resultStudyNoteWithQuestions
-                    )
-
-                } catch (e: Exception) {
-                    Log.d(TAG, "uploadPdf:Call processNote failed exception $e")
-                    addFirestoreListenerForSixMinutes(
-                        currentMilliUnix
-                    )
-                }
-
-            }
-
-
-        }
-    }*/
-
-    fun createStudyNoteFromPdf(pdfUri: Uri) {
-        // Ensure the user is authenticated before proceeding
+    fun initCreateNote(pdfUri: Uri) = viewModelScope.launch(Dispatchers.IO) {
         val userId = auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
-        val currentMillis = System.currentTimeMillis()
-        val studyNoteRef = firestore.collection("users")
+        val noteId = firestore
+            .collection("users")
             .document(userId)
             .collection("notes")
-            .document()
+            .document().id
+        homeRepository.addNote(noteId, pdfUri)
+        val docUrl = uploadingPdfToStorage(userId, noteId, pdfUri)
+            ?: //          failed to upload snackbar msg
+            return@launch
+        processFun(noteId = noteId, docUrl = docUrl)
 
-        val studyNoteId = studyNoteRef.id
-        val storagePath = "uploads/$userId/docs/$studyNoteId/${pdfUri.lastPathSegment}"
-
-        Log.d(TAG, "addNote: $pdfUri")
-
-        viewModelScope.launch(Dispatchers.IO) {
-            // Insert note into local database
-            homeRepository.addNote(studyNoteId, pdfUri)
-
-            // Upload PDF to Firebase Storage
-            val storageReference = storage.reference.child(storagePath)
-            val uploadTask = storageReference.putFile(pdfUri)
-
-            uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress =
-                    (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
-                Log.d(TAG, "Upload is $progress% done")
-            }
-
-            try {
-                val uploadResult = uploadTask.await()
-                if (uploadResult.task.isSuccessful) {
-                    Log.d(TAG, "uploadPdf: success $uploadResult")
-
-                    // Update local status
-                    homeRepository.updateStatusOfStudyNote(studyNoteId, 0)
-
-                    // Prepare payload for cloud function call
-                    val payload = hashMapOf(
-                        "noteId" to studyNoteId,
-                        "docUrl" to storagePath
-                    )
-
-                    // Call cloud function to process the note
-                    val processNoteCall = functions.getHttpsCallable("processNote")
-                    val result = processNoteCall.call(payload).await()
-
-                    if (result.data != null) {
-
-                        val json = gson.toJson(result.data)
-                        Log.d(TAG, "createStudyNoteFromPdf: $json")
-                        println(json)
-                        val funRes = gson.fromJson(json, FunResponse::class.java)
-                        Log.d(TAG, "createStudyNoteFromPdf: $funRes")
-                        Log.d(TAG, "createStudyNoteFromPdf: ${funRes.credit.lastUpdated}")
-                        when (funRes.statusCode) {
-                            200 /*OK*/ -> {
-                                studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(funRes.data.apply {
-                                    id = studyNoteId
-                                    docUrl = storagePath
-                                })
-                                creditSubscriptionDataStore.update(
-                                    CreditAndSubscriptionInfo(
-                                        credit = funRes.credit,
-                                        subscription = funRes.subscription
-                                    )
-                                )
-                            }
-
-                            400/*NOTE DOCUMENT NOT EXIST FOR RETRY*/ -> {
-                                studyNoteRepository.markedAsFailed(studyNoteId)
-                                creditSubscriptionDataStore.update(
-                                    CreditAndSubscriptionInfo(
-                                        credit = funRes.credit,
-                                        subscription = funRes.subscription
-                                    )
-                                )
-                            }
-
-                            401 /*REQUEST INVALID,NO CREDIT INFO FOR THIS*/ -> {
-                                studyNoteRepository.markedAsFailed(studyNoteId)
-                            }
-
-                            500 /*CREDIT LIMIT REACHED*/ -> {
-                                studyNoteRepository.markedAsFailed(studyNoteId)
-                                creditSubscriptionDataStore.update(
-                                    CreditAndSubscriptionInfo(
-                                        credit = funRes.credit,
-                                        subscription = funRes.subscription
-                                    )
-                                )
-                            }
-
-                            else -> {
-                                Log.d(
-                                    TAG,
-                                    "uploadPdf: processNote call failed ${funRes.statusCode}",
-                                )
-//                                todo: notify error,marked as failed
-                                studyNoteRepository.markedAsFailed(studyNoteId)
-                            }
-                        }
-                        /* val studyNoteWithQuestions =
-                             gson.fromJson(json, StudyNoteWithQuestionsFirestore::class.java)
-                                 ?.apply {
-                                     id = studyNoteId
-                                     docUrl = storagePath
-
-                                 }
-                         studyNoteWithQuestions?.let {
-                             studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(it)
-                         }*/
-                    } else {
-                        Log.d(TAG, "uploadPdf: processNote call returned no result")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.d(TAG, "uploadPdf: Call to processNote failed", e)
-                addFirestoreListenerForSixMinutes(currentMillis)
-            }
-        }
     }
+
+    fun retryCreateNote(studyNote: StudyNote) = viewModelScope.launch(Dispatchers.IO) {
+        val userId = auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+        val docUrl = if (studyNote.docUrl == "") {
+//            upload pdf
+            uploadingPdfToStorage(userId, studyNote.id, pdfUri = studyNote.docLocalUrl.toUri())
+                ?: return@launch
+
+        } else {
+//            already uploaded
+            studyNote.docUrl
+
+        }
+        processFun(noteId = studyNote.id, docUrl = docUrl, funName = "retryFromFailed")
+
+    }
+
+
+    private suspend fun uploadingPdfToStorage(
+        userId: String,
+        noteId: String,
+        pdfUri: Uri,
+        pdfName: String = "first.pdf"
+    ): String? {
+
+
+        val file = FileUtils.getFileFromUri(pdfUri.toString())
+//                may the file is outdated there for check
+        if (file?.exists() != true) {
+//            make it as corrupted file
+            studyNoteRepository.updateNoteStatus(
+                noteId = noteId,
+                status = NOTE_PROCESSING_LOCAL_FILE_CORRUPTED,
+                isProcessing = false
+            )
+            return null
+        }
+        studyNoteRepository.updateNoteStatus(
+            noteId = noteId,
+            status = NOTE_PROCESSING_UPLOADING_PDF,
+            isProcessing = true
+        )
+        val storagePath = "uploads/$userId/docs/$noteId/${pdfName}"
+        val storageReference = storage.reference.child(storagePath)
+        val uploadTask = storageReference.putFile(pdfUri)
+        uploadTask.addOnProgressListener { taskSnapshot ->
+            val progress =
+                (100.0 * taskSnapshot.bytesTransferred / taskSnapshot.totalByteCount).toInt()
+            Log.d(TAG, "Upload is $progress% done")
+//            update progress in ui
+        }
+        try {
+            val uploadResult = uploadTask.await()
+            if (uploadResult.task.isSuccessful) {
+//                mark it as status uploaded
+                studyNoteRepository.updatePdfStoragePath(noteId = noteId, storagePath = storagePath)
+                return storagePath
+            }
+
+        } catch (_: Exception) {
+
+        }
+        studyNoteRepository.updateNoteStatus(
+            noteId = noteId,
+            status = NOTE_PROCESSING_UPLOADING_PDF_FAILED,
+            isProcessing = false
+        )
+        return null
+    }
+
+    private suspend fun processFun(
+        noteId: String,
+        docUrl: String,
+        funName: String = "processNote"
+    ) {
+        studyNoteRepository.updateNoteStatus(
+            noteId = noteId,
+            status = NOTE_PROCESSING_FUN_CALLING,
+            isProcessing = true
+        )
+        // Prepare payload for cloud function call
+        val payload = hashMapOf(
+            "noteId" to noteId,
+            "docUrl" to docUrl
+        )
+        Log.d(TAG, "processFun: payload $payload")
+        // Call cloud function to process the note
+        val processNoteCall = functions.getHttpsCallable(funName)
+        val result = try {
+            processNoteCall.call(payload).await()
+        } catch (e: Exception) {
+            Log.d(TAG, "processFun: $e")
+            null
+        }
+        if (result == null) {
+            studyNoteRepository.markedAsFailed(noteId)
+            return
+        }
+
+        if (result.data != null) {
+            val json = gson.toJson(result.data)
+            Log.d(TAG, "createStudyNoteFromPdf: $json")
+            println(json)
+            val funRes = gson.fromJson(json, FunResponse::class.java)
+            Log.d(TAG, "createStudyNoteFromPdf: $funRes")
+            Log.d(TAG, "createStudyNoteFromPdf: ${funRes.credit.lastUpdated}")
+            when (funRes.statusCode) {
+                200 /*OK*/ -> {
+                    studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(funRes.data.apply {
+                        this.id = noteId
+                        this.docUrl = "storagePath"
+                    })
+                    creditSubscriptionDataStore.update(
+                        CreditAndSubscriptionInfo(
+                            credit = funRes.credit,
+                            subscription = funRes.subscription
+                        )
+                    )
+                }
+
+                400/*NOTE DOCUMENT NOT EXIST FOR RETRY*/ -> {
+                    studyNoteRepository.markedAsFailed(noteId)
+                    creditSubscriptionDataStore.update(
+                        CreditAndSubscriptionInfo(
+                            credit = funRes.credit,
+                            subscription = funRes.subscription
+                        )
+                    )
+                }
+
+                401 /*REQUEST INVALID,NO CREDIT INFO FOR THIS*/ -> {
+                    studyNoteRepository.markedAsFailed(noteId)
+                }
+
+                500 /*CREDIT LIMIT REACHED*/ -> {
+                    studyNoteRepository.markedAsFailed(noteId)
+                    creditSubscriptionDataStore.update(
+                        CreditAndSubscriptionInfo(
+                            credit = funRes.credit,
+                            subscription = funRes.subscription
+                        )
+                    )
+                }
+
+                else -> {
+                    Log.d(
+                        TAG,
+                        "uploadPdf: processNote call failed ${funRes.statusCode}",
+                    )
+//     todo: notify error,marked as failed
+                    studyNoteRepository.markedAsFailed(noteId)
+                }
+            }
+
+        } else {
+            Log.d(TAG, "funCall: processNote call returned no result")
+            studyNoteRepository.markedAsFailed(noteId)
+        }
+
+    }
+
+
 
 
     private fun addFirestoreListenerForSixMinutes(form: Long) {
@@ -459,93 +431,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun retryStudyNoteGen(studyNote: StudyNote) {
-        viewModelScope.launch(Dispatchers.IO) {
-            studyNoteRepository.retrying(studyNote.id)
-            try {
-//               handle  the uploading failed
 
-                // Prepare payload for cloud function call
-                val payload = hashMapOf(
-                    "noteId" to studyNote.id,
-//                "docUrl" to studyNote.docUrl
-                )
-
-                // Call cloud function to process the note
-                val processNoteCall = functions.getHttpsCallable("retryFromFailed")
-                val result = processNoteCall.call(payload).await()
-
-                if (result.data != null) {
-                    /*val json = gson.toJson(result.data)
-                    val studyNoteWithQuestions =
-                        gson.fromJson(json, StudyNoteWithQuestionsFirestore::class.java)
-                            ?.apply {
-                                id = studyNote.id
-                            }
-                    studyNoteWithQuestions?.let {
-                        studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(it)
-                    }*/
-                    val json = gson.toJson(result.data)
-                    Log.d(TAG, "createStudyNoteFromPdf: $json")
-                    val funRes = gson.fromJson(json, FunResponse::class.java)
-                    Log.d(TAG, "createStudyNoteFromPdf: $funRes")
-                    when (funRes.statusCode) {
-                        200 /*OK*/ -> {
-                            studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(funRes.data.apply {
-                                id = studyNote.id
-//                                 = studyNote.docLocalUrl
-                            })
-                            creditSubscriptionDataStore.update(
-                                CreditAndSubscriptionInfo(
-                                    credit = funRes.credit,
-                                    subscription = funRes.subscription
-                                )
-                            )
-                        }
-
-                        400/*NOTE DOCUMENT NOT EXIST FOR RETRY*/ -> {
-                            studyNoteRepository.markedAsFailed(studyNote.id)
-                            creditSubscriptionDataStore.update(
-                                CreditAndSubscriptionInfo(
-                                    credit = funRes.credit,
-                                    subscription = funRes.subscription
-                                )
-                            )
-                        }
-
-                        401 /*REQUEST INVALID,NO CREDIT INFO FOR THIS*/ -> {
-                            studyNoteRepository.markedAsFailed(studyNote.id)
-                        }
-
-                        500 /*CREDIT LIMIT REACHED*/ -> {
-                            studyNoteRepository.markedAsFailed(studyNote.id)
-                            creditSubscriptionDataStore.update(
-                                CreditAndSubscriptionInfo(
-                                    credit = funRes.credit,
-                                    subscription = funRes.subscription
-                                )
-                            )
-                        }
-
-                        else -> {
-                            Log.d(
-                                TAG,
-                                "uploadPdf: processNote call failed ${funRes.statusCode}",
-                            )
-//                                todo: notify error,marked as failed
-                            studyNoteRepository.markedAsFailed(studyNote.id)
-                        }
-                    }
-                } else {
-                    Log.d(TAG, "uploadPdf: processNote call returned no result")
-                }
-
-            } catch (e: Exception) {
-                Log.d(TAG, "retryStudyNoteGen: error $e")
-            }
-
-        }
-    }
 
 
 }

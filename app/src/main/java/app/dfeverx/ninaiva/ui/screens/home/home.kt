@@ -12,6 +12,8 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -56,7 +58,6 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ChipColors
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -114,8 +115,12 @@ import app.dfeverx.ninaiva.utils.openNotificationSettings
 import app.dfeverx.ninaiva.utils.relativeTime
 import coil.compose.AsyncImage
 import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WorkspacePremium
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import app.dfeverx.ninaiva.ui.main.MainActivity.Companion.acknowledged
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -179,10 +184,12 @@ fun Home(navController: NavHostController) {
                 GmsDocumentScanningResult.fromActivityResultIntent(
                     result.data
                 )
+            
             documentScanningResult?.pdf?.let { pdf ->
 
                 Log.d("TAG", "DocumentScanner: ${pdf.uri}")
-                homeViewModel.createStudyNoteFromPdf(pdf.uri)
+//                homeViewModel.createStudyNoteFromPdf(pdf.uri)
+                homeViewModel.initCreateNote(pdf.uri)
             }
         }
     }
@@ -190,7 +197,7 @@ fun Home(navController: NavHostController) {
 
     fun launchScanner() {
         homeViewModel
-            .getScanner(isPro.value )
+            .getScanner(isPro.value)
             .getStartScanIntent(activity)
             .addOnSuccessListener { intentSender ->
                 scannerLauncher.launch(
@@ -388,9 +395,9 @@ fun Home(navController: NavHostController) {
                     if (!hasQuota.value) {
                         item(span = StaggeredGridItemSpan.FullLine) {
                             UtilityCard(
-                                title = if (mainViewModel.auth.currentUser?.isAnonymous == true) "Quota exceeds!" else if (isPro.value) "Your monthly quota exceeds !" else "Quota exceeds! ",
+                                title = if (mainViewModel.auth.currentUser?.isAnonymous == true) "Quota exceeds!" else if (isPro.value) "Monthly quota exceeds!" else "Monthly quota exceeds!",
                                 description =
-                                if (mainViewModel.auth.currentUser?.isAnonymous == true) "Authenticate your account and get up to 5Notes/month for free" else if (isPro.value) "Revise the existing notes, wait for the next month to create new !" else "Upgrade to pro plans to scan up to 50 Notes/month ",
+                                if (mainViewModel.auth.currentUser?.isAnonymous == true) "Authenticate your account and get up to 5Notes/month for free" else if (isPro.value) "Revise the existing notes, wait for the next month to create new !" else "Upgrade to pro plans to scan up to 50 Notes/month or wait for the next month  ",
                                 icon = Icons.Outlined.Warning,
                                 askText = null
                             ) {
@@ -617,7 +624,7 @@ fun StudyNoteOverviewItem(
 ) {
 
     OutlinedCard(modifier = Modifier, onClick = {
-        if ((!studyNote.isProcessing) && studyNote.status !== -1) {
+        if ((!studyNote.isProcessing) && studyNote.status != -1) {
             onClickNote(studyNote)
         }
     }) {
@@ -636,39 +643,7 @@ fun StudyNoteOverviewItem(
         }
 
         if (studyNote.isProcessing) {
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                contentColor = MaterialTheme.colorScheme.surface,
-                color = MaterialTheme.colorScheme.onSurface
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    AnimatedCircle()
-                    Row(
-                        modifier = Modifier.padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
-
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(24.dp)
-                        )
-                        Text(
-                            modifier = Modifier,
-                            text = "Processing wait..",
-                            color = MaterialTheme.colorScheme.surface
-                        )
-
-                    }
-
-                }
-
-
-            }
-
-
+            ProcessingNote()
         } else if (studyNote.status in 1..2) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -688,7 +663,10 @@ fun StudyNoteOverviewItem(
                             color = MaterialTheme.colorScheme.surface
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = { homeViewModel.retryStudyNoteGen(studyNote) }) {
+                        Button(onClick = {
+//                            homeViewModel.retryStudyNoteGen(studyNote)
+                            homeViewModel.retryCreateNote(studyNote)
+                        }) {
                             Text(text = "Retry")
                         }
 
@@ -802,6 +780,88 @@ fun StudyNoteOverviewItem(
             )
             Text(text = "Document")
         }
+
+    }
+}
+
+@Composable
+fun ProcessingNote(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "")
+
+    val color1 by infiniteTransition.animateColor(
+        initialValue = Color.Red,
+        targetValue = Color.Blue,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    val color2 by infiniteTransition.animateColor(
+        initialValue = Color.Blue,
+        targetValue = Color.Red,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000),
+            repeatMode = RepeatMode.Reverse
+        ), label = ""
+    )
+
+    val brush = Brush.horizontalGradient(listOf(color1, color2))
+    Column(modifier = modifier
+        .fillMaxWidth()
+        .drawBehind {
+            drawRect(brush)
+        }) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+
+            val rotation = remember { Animatable(0f) }
+
+            // Launch the animation to rotate infinitely
+            LaunchedEffect(Unit) {
+                rotation.animateTo(
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(3000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    )
+                )
+            }
+            Icon(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(24.dp)
+                    .rotate(rotation.value),
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = "",
+                tint = Color.White
+            )
+            Text(
+                modifier = Modifier,
+                text = "Processing wait..",
+                color = Color.White
+            )
+
+        }
+
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(8.dp),
+            text = "1/2 Uploading",
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.labelSmall
+        )
+
 
     }
 }
@@ -989,37 +1049,6 @@ fun EmptyStudyNote(
 
 }
 
-@Composable
-fun AnimatedCircle() {
-    val infiniteTransition = rememberInfiniteTransition(label = "")
-
-    val color1 by infiniteTransition.animateColor(
-        initialValue = Color.Red,
-        targetValue = Color.Blue,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000),
-            repeatMode = RepeatMode.Reverse
-        ), label = ""
-    )
-
-    val color2 by infiniteTransition.animateColor(
-        initialValue = Color.Blue,
-        targetValue = Color.Red,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000),
-            repeatMode = RepeatMode.Reverse
-        ), label = ""
-    )
-
-    val brush = Brush.horizontalGradient(listOf(color1, color2))
-
-    Canvas(
-        modifier = Modifier.fillMaxWidth(),
-        onDraw = {
-            drawRect(brush)
-        }
-    )
-}
 
 class TextIcon(
     val icon: ImageVector, val label: String, val value: String,

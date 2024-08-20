@@ -16,6 +16,8 @@ import app.dfeverx.ninaiva.datastore.StreakDataStore
 import app.dfeverx.ninaiva.di.IS_INITIAL_NOTES_FETCH
 import app.dfeverx.ninaiva.models.CreditAndSubscriptionInfo
 import app.dfeverx.ninaiva.models.remote.StudyNoteWithQuestionsFirestore
+import app.dfeverx.ninaiva.receivers.scheduleAlarm
+import app.dfeverx.ninaiva.repos.LevelRepository
 import app.dfeverx.ninaiva.repos.StudyNoteRepository
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.filterNotIn
@@ -49,8 +51,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    application: LearningPartnerApplication,
+    private val application: LearningPartnerApplication,
     private val studyNoteRepository: StudyNoteRepository,
+    private val levelRepository: LevelRepository,
     private val sharedPreferences: SharedPreferences,
     private val streakDataStore: StreakDataStore,
     private val creditSubscriptionDataStore: CreditAndSubscriptionDataStore,
@@ -152,6 +155,9 @@ class MainViewModel @Inject constructor(
     private suspend fun resetStreaks(delayedNotes: List<Pair<TimePeriod, String>>) {
 //        firestore
 //        sharedpref
+        delayedNotes.map {
+            levelRepository.updateStudyNoteInFirestore(it.second)
+        }
         streakDataStore.resetStreak()
     }
 
@@ -212,7 +218,8 @@ class MainViewModel @Inject constructor(
             .collection("users")
             .document(uid)
             .collection("notes")
-            .get().addOnSuccessListener { result ->
+            .get()
+            .addOnSuccessListener { result ->
                 firestoreStudyNotesResultToLocalDb(result)
                 sharedPreferences
                     .edit()
@@ -237,7 +244,10 @@ class MainViewModel @Inject constructor(
                         }
                 studyNoteList.add(note)
                 viewModelScope.launch {
-                    studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(note)
+                    val _r = studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(note)
+                    val allStudyNotes = studyNoteRepository.allStudyNoted()
+                    alarmManager.scheduleAlarm(allStudyNotes, application)
+                    streakValidation()
                 }
             }
 
@@ -421,6 +431,15 @@ class MainViewModel @Inject constructor(
     val NOTE_CREATTION_LIMT_PREMIUM = 50
     val NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY = 5
     val NOTE_CREATTION_LIMT_ANONYMOUS = 3
+
+
+    fun isAdEnabled(): Boolean {
+        return if (_isPro.value) {
+            return false
+        } else {
+            _creditAndSubscriptionInfo.value.credit.noteCount > 2
+        }
+    }
 
     fun directScanEligible(): Boolean {
 //        return true
