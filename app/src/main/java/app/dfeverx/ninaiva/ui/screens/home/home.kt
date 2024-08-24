@@ -12,6 +12,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColor
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -114,13 +115,14 @@ import app.dfeverx.ninaiva.utils.borderBottom
 import app.dfeverx.ninaiva.utils.openNotificationSettings
 import app.dfeverx.ninaiva.utils.relativeTime
 import coil.compose.AsyncImage
-import androidx.compose.foundation.Canvas
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_FUN_CALLING
+import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_UPLOADING_PDF
 import app.dfeverx.ninaiva.ui.main.MainActivity.Companion.acknowledged
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -184,7 +186,7 @@ fun Home(navController: NavHostController) {
                 GmsDocumentScanningResult.fromActivityResultIntent(
                     result.data
                 )
-            
+
             documentScanningResult?.pdf?.let { pdf ->
 
                 Log.d("TAG", "DocumentScanner: ${pdf.uri}")
@@ -194,7 +196,15 @@ fun Home(navController: NavHostController) {
         }
     }
     val isPro = mainViewModel.isPro.collectAsState()
+    val snackbarMessage by homeViewModel.snackbarMessage.collectAsState()
 
+    LaunchedEffect(snackbarMessage) {
+        snackbarMessage?.let { message ->
+            coroutineScope.launch {
+                snackBarHostState.showSnackbar(message)
+            }
+        }
+    }
     fun launchScanner() {
         homeViewModel
             .getScanner(isPro.value)
@@ -567,6 +577,7 @@ fun Home(navController: NavHostController) {
 
     if (showStreakBS) {
         ModalBottomSheet(
+            sheetState = bottomSheetState,
             onDismissRequest = {
                 showStreakBS = false
             },
@@ -643,7 +654,7 @@ fun StudyNoteOverviewItem(
         }
 
         if (studyNote.isProcessing) {
-            ProcessingNote()
+            ProcessingNote(studyNote = studyNote)
         } else if (studyNote.status in 1..2) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -785,7 +796,7 @@ fun StudyNoteOverviewItem(
 }
 
 @Composable
-fun ProcessingNote(modifier: Modifier = Modifier) {
+fun ProcessingNote(modifier: Modifier = Modifier, studyNote: StudyNote) {
     val infiniteTransition = rememberInfiniteTransition(label = "")
 
     val color1 by infiniteTransition.animateColor(
@@ -809,6 +820,7 @@ fun ProcessingNote(modifier: Modifier = Modifier) {
     val brush = Brush.horizontalGradient(listOf(color1, color2))
     Column(modifier = modifier
         .fillMaxWidth()
+        .animateContentSize()
         .drawBehind {
             drawRect(brush)
         }) {
@@ -816,7 +828,8 @@ fun ProcessingNote(modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp),
+                .padding(horizontal = 8.dp)
+                .padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
@@ -850,17 +863,19 @@ fun ProcessingNote(modifier: Modifier = Modifier) {
 
         }
 
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(8.dp),
-            text = "1/2 Uploading",
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.labelSmall
-        )
+        androidx.compose.animation.AnimatedVisibility(studyNote.status == NOTE_PROCESSING_FUN_CALLING || studyNote.status == NOTE_PROCESSING_UPLOADING_PDF) {
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(8.dp),
+                text = if (studyNote.status == NOTE_PROCESSING_UPLOADING_PDF) "1/3 Uploading" else if (studyNote.status == NOTE_PROCESSING_FUN_CALLING) "2/3 Key points" else "...",
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
 
 
     }

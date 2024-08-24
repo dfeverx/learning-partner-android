@@ -12,6 +12,7 @@ import app.dfeverx.ninaiva.LearningPartnerApplication
 import app.dfeverx.ninaiva.datastore.StreakDataStore
 import app.dfeverx.ninaiva.receivers.OnAlarmTriggeredReceiver
 import app.dfeverx.ninaiva.repos.LevelRepository
+import app.dfeverx.ninaiva.ui.screens.home.HomeViewModel.RepetitionSchedule
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.getTimePeriod
 import app.dfeverx.ninaiva.utils.scheduleNotificationForNextAttempt
@@ -48,6 +49,12 @@ class StatisticsViewModel @Inject constructor(
     private val accuracy = ((score.toFloat() / totalNumberOfQuestions) * 100).toInt()
 
 
+    private val _isGotStreak: MutableStateFlow<Boolean> = MutableStateFlow(
+        false
+    )
+
+    val isGotStreak: StateFlow<Boolean>
+        get() = _isGotStreak
     private val _uiState =
         MutableStateFlow(
             StatisticsUiState(
@@ -91,20 +98,22 @@ class StatisticsViewModel @Inject constructor(
                     System.currentTimeMillis() + (60 * 1000),
                     noteId = noteId
                 )*/
+                if (isRevision) {
+                    return@launch
+                }
                 alarmManager.scheduleNotificationForNextAttempt(
                     application = application,
                     nextAttemptUnix = nextAttemptUnix,
                     noteId = noteId
                 )
                 Log.d(TAG, "Init: level creation $levelCreationResult")
-
-
             }
         }
 
-        viewModelScope.launch (Dispatchers.IO){
+        viewModelScope.launch(Dispatchers.IO) {
             val studyNote = levelRepository.studyNoteById(noteId)
-            _uiState.value = _uiState.value.copy(levelOverAllProgress = ((studyNote.currentStage - 1)) / studyNote.totalLevel.toFloat())
+            _uiState.value =
+                _uiState.value.copy(levelOverAllProgress = ((studyNote.currentStage)) / studyNote.totalLevel.toFloat())
         }
     }
 
@@ -116,6 +125,7 @@ class StatisticsViewModel @Inject constructor(
         if (studyNote.currentStage == stage && getTimePeriod(studyNote.nextLevelIn) == TimePeriod.TODAY) {
             Log.d(TAG, "giveStreak: eligible for streak")
             streakDataStore.incrementStreak()
+            _isGotStreak.value = true
         } else {
             Log.d(TAG, "giveStreak: not eligible for streak")
         }

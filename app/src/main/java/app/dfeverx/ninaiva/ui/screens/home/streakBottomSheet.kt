@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +44,7 @@ fun StreakBottomSheetContent(
     )
     Column(
         modifier = Modifier
-            .padding(bottom = 32.dp)
+            .padding(bottom = 16.dp)
             .fillMaxWidth(),
     ) {
 
@@ -69,6 +71,18 @@ fun StreakBottomSheetContent(
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
+        if (!streakInfo.value.isAcknowledgedRest) {
+            UtilityCard(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                title = "You lost!",
+                description = "You missed an attempt that result in lost every streak you earned",
+                askText = null,
+                icon = Icons.Outlined.Warning
+            ) {
+
+            }
+        }
+
 
         if (schedules.isNotEmpty()) {
             Text(

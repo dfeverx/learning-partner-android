@@ -1,5 +1,6 @@
 package app.dfeverx.ninaiva.repos
 
+import android.util.Log
 import androidx.room.withTransaction
 import app.dfeverx.ninaiva.db.AppDatabase
 import app.dfeverx.ninaiva.models.local.Level
@@ -55,14 +56,19 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
             val studyNoteWithAllQuestions =
                 appDatabase.studyNotesDao().studyNoteWithQuestions(studyNoteId)
 
-
+            val isNextRevision = studyNoteWithAllQuestions?.studyNote?.totalLevel == stage
+            Log.d(
+                TAG,
+                "createNewLevelOnlyIfNotExist: totalLevel ${studyNoteWithAllQuestions?.studyNote?.totalLevel}, stage $stage"
+            )
+            Log.d(TAG, "createNewLevelOnlyIfNotExist: $isNextRevision")
 //            update to study notes stage local db
             appDatabase
                 .studyNotesDao()
                 .updateStageNextAttemptScoreAccuracy(
                     studyNoteId = studyNoteWithAllQuestions!!.studyNote!!.id,
                     stage = stage + 1,
-                    nextLevelIn = nextAttemptUnix, //unix timestamp
+                    nextLevelIn = if (isNextRevision) 0 else nextAttemptUnix, //unix timestamp
                     score = score,
                     accuracy = accuracy
                 )
@@ -70,32 +76,28 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
             updateStudyNoteInFirestore(
                 studyNoteId = studyNoteWithAllQuestions.studyNote!!.id,
                 stage = stage + 1,
-                nextLevelIn = nextAttemptUnix,
+                nextLevelIn = if (isNextRevision) 0 else nextAttemptUnix,
                 score = score,
                 accuracy = accuracy
             )
 
 
 //            create new level
-            appDatabase.levelDao()
-                .addLevel(
-                    if (studyNoteWithAllQuestions.studyNote?.totalLevel == stage) {
-                        Level(
-                            stage = stage + 1,
-                            studyNoteId = studyNoteId,
-                            questionIds = studyNoteWithAllQuestions.questions?.map { it.id }
-                                ?: listOf(),
-                            isCompleted = false,
-                            isRevision = true
-                        )
-                    } else {
+//            only if it is not revision ,for revision it is create when added to the db
+            return@withTransaction if (!isNextRevision) {
+                appDatabase.levelDao()
+                    .addLevel(
+
                         studyNoteWithAllQuestions.studyNote!!.genNextLevel(
                             allQuestions = studyNoteWithAllQuestions.questions!!,
                             stage = stage + 1
                         )
-                    }
 
-                )
+
+                    )
+            } else {
+                -1
+            }
 
 
         }

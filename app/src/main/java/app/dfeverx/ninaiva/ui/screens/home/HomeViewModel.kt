@@ -179,6 +179,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private val _snackbarMessage = MutableStateFlow<String?>(null)
+    val snackbarMessage: StateFlow<String?> = _snackbarMessage
+
+    // Function to show a Snackbar message and auto-clear it after 10 seconds
+    fun showSnackbar(message: String) {
+        _snackbarMessage.value = message
+        viewModelScope.launch {
+            delay(10000) // Delay for 10 seconds
+            clearSnackbarMessage()
+        }
+    }
+
+    // Function to clear the Snackbar message
+    private fun clearSnackbarMessage() {
+        _snackbarMessage.value = null
+    }
+
     fun isAnonymousUser(): Boolean {
         return auth.currentUser?.isAnonymous ?: true
     }
@@ -211,7 +228,10 @@ class HomeViewModel @Inject constructor(
     }
 
     fun initCreateNote(pdfUri: Uri) = viewModelScope.launch(Dispatchers.IO) {
-        val userId = auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated")
+        val userId =
+            auth.currentUser?.uid ?: throw IllegalStateException("User not authenticated").apply {
+                showSnackbar("Failed to create smart note")
+            }
         val noteId = firestore
             .collection("users")
             .document(userId)
@@ -219,8 +239,7 @@ class HomeViewModel @Inject constructor(
             .document().id
         homeRepository.addNote(noteId, pdfUri)
         val docUrl = uploadingPdfToStorage(userId, noteId, pdfUri)
-            ?: //          failed to upload snackbar msg
-            return@launch
+            ?: return@launch
         processFun(noteId = noteId, docUrl = docUrl)
 
     }
@@ -259,6 +278,7 @@ class HomeViewModel @Inject constructor(
                 status = NOTE_PROCESSING_LOCAL_FILE_CORRUPTED,
                 isProcessing = false
             )
+            showSnackbar("Note creation failed , local document corrupted!")
             return null
         }
         studyNoteRepository.updateNoteStatus(
@@ -291,6 +311,7 @@ class HomeViewModel @Inject constructor(
             status = NOTE_PROCESSING_UPLOADING_PDF_FAILED,
             isProcessing = false
         )
+        showSnackbar("Failed to upload the document , retry")
         return null
     }
 
@@ -334,7 +355,7 @@ class HomeViewModel @Inject constructor(
                 200 /*OK*/ -> {
                     studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(funRes.data.apply {
                         this.id = noteId
-                        this.docUrl = "storagePath"
+                        this.docUrl = docUrl
                     })
                     creditSubscriptionDataStore.update(
                         CreditAndSubscriptionInfo(
@@ -356,6 +377,7 @@ class HomeViewModel @Inject constructor(
 
                 401 /*REQUEST INVALID,NO CREDIT INFO FOR THIS*/ -> {
                     studyNoteRepository.markedAsFailed(noteId)
+                    showSnackbar("Invalid request , retry after sometime")
                 }
 
                 500 /*CREDIT LIMIT REACHED*/ -> {
@@ -366,6 +388,7 @@ class HomeViewModel @Inject constructor(
                             subscription = funRes.subscription
                         )
                     )
+                    showSnackbar("You have reached the monthly quota limit !")
                 }
 
                 else -> {
@@ -375,17 +398,18 @@ class HomeViewModel @Inject constructor(
                     )
 //     todo: notify error,marked as failed
                     studyNoteRepository.markedAsFailed(noteId)
+                    showSnackbar("Failed ,retry after some time")
+
                 }
             }
 
         } else {
             Log.d(TAG, "funCall: processNote call returned no result")
             studyNoteRepository.markedAsFailed(noteId)
+            showSnackbar("Failed ,retry after some time")
         }
 
     }
-
-
 
 
     private fun addFirestoreListenerForSixMinutes(form: Long) {
@@ -430,8 +454,6 @@ class HomeViewModel @Inject constructor(
             Log.d(TAG, "Id: ${note.id}, title: ${note.title}")
         }
     }
-
-
 
 
 }

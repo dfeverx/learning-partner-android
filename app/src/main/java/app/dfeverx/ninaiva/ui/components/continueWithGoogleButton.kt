@@ -47,6 +47,7 @@ fun ContinueWithGoogleButton(
         .requestIdToken(getString(context, R.string.web_client_id))
         .requestEmail()
         .requestProfile()
+
         .build()
 
     val googleSignInClient = GoogleSignIn.getClient(context, gso)

@@ -114,28 +114,50 @@ fun Levels(navController: NavController) {
                 .padding(paddingValues)
 
         ) {
-            if (false) {
+            /*if (false) {
                 item {
                     RandomPlayCard {
 
                     }
                 }
-            }
-
+            }*/
 
 
             items(levels) {
-                it?.let { it1 ->
-                    if (it1.isRevision) {
-                        RevisionCardItem {}
-                    } else {
+                if (it?.isRevision == true) {
+                    RevisionCardItem {
+                        Log.d(
+                            "TAG",
+                            "Levels: size ${levels.size}, stage curretn ${it.currentStage} "
+                        )
+                        if (levels.size != it.currentStage) {
+                            showLevelNotReadyBottomSheet = true
+                        } else {
+                            if (levelViewModel.hasAlarmPermission()) {
+                                navController.navigate(Screens.Play.route + "/${noteId}/${it?.levelId}/${it?.stage}/${it?.isRevision}")
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "To get accurate Notification update schedule alarm permission is mandatory",
+                                    Toast.LENGTH_LONG
+                                ).show()
 
-                        LevelItemGroup(modifier = Modifier, level = it1, onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    startActivity(
+                                        context,
+                                        Intent(ACTION_REQUEST_SCHEDULE_EXACT_ALARM), null
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (it != null) {
+                        LevelItemGroup(modifier = Modifier, level = it, onClick = {
                             Log.d("TAG", "Levels: $it ")
                             if (it.levelId == null || (it.nextPlay == TimePeriod.FUTURE && it.stage == it.currentStage)) {
                                 showLevelNotReadyBottomSheet = true
                             } else {
-//                            Alarm check permission
                                 if (levelViewModel.hasAlarmPermission()) {
                                     navController.navigate(Screens.Play.route + "/${noteId}/${it.levelId}/${it.stage}/${it.isRevision}")
                                 } else {
@@ -157,12 +179,6 @@ fun Levels(navController: NavController) {
                     }
                 }
             }
-
-            /*   items(2) {
-                   RevisionCardItem {
-
-                   }
-               }*/
 
 
         }

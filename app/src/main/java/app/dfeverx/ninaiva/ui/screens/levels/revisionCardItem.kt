@@ -1,5 +1,6 @@
 package app.dfeverx.ninaiva.ui.screens.levels
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +23,7 @@ fun RevisionCardItem(isPlayable: Boolean = false, onClickPlay: () -> Unit) {
     OutlinedCard(
         modifier = Modifier
             .padding(16.dp)
+            .clickable { onClickPlay() }
             .fillMaxWidth()
 
     ) {
@@ -36,7 +38,7 @@ fun RevisionCardItem(isPlayable: Boolean = false, onClickPlay: () -> Unit) {
                 text = "Revision 1",
                 style = MaterialTheme.typography.titleLarge
             )
-            Text(modifier = Modifier.padding(bottom = 8.dp), text = "Revision 1")
+            Text(modifier = Modifier.padding(bottom = 8.dp), text = "Revision 1 ")
             if (isPlayable) {
                 FilledTonalButton(onClick = { /*TODO*/ }) {
                     Icon(imageVector = Icons.Outlined.PlayArrow, contentDescription = "")

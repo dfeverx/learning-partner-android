@@ -67,11 +67,14 @@ private fun StudyNoteWithLevels.uiLevels(prettyTime: PrettyTime): List<LevelUI> 
         }
 
         else -> {
-            for (i in 1..this.studyNote?.totalLevel!!)
+            val levelsWithOutRevision = this.levels?.filter { !it.isRevision }
+            val levelsWithRevision = this.levels?.filter { it.isRevision }
+
+            for (i in 1..(this.studyNote?.totalLevel!!)) {
                 listOfUiLevel.add(
                     LevelUI(
-                        levelId = this.levels?.getOrNull(i - 1)?.id,//todo: improve
-                        isRevision = this.levels?.getOrNull(i - 1)?.isRevision ?: false,
+                        levelId = levelsWithOutRevision?.getOrNull(i - 1)?.id,// todo: improve
+                        isRevision = levelsWithOutRevision?.getOrNull(i - 1)?.isRevision ?: false,
                         stage = i,
                         nextPlay = getTimePeriod(this.studyNote!!.nextLevelIn),
                         currentStage = this.studyNote?.currentStage ?: -1,
@@ -87,21 +90,37 @@ private fun StudyNoteWithLevels.uiLevels(prettyTime: PrettyTime): List<LevelUI> 
                         ) else "", nextPlayUnix = this.studyNote?.nextLevelIn ?: 0
                     )
                 )
+            }
+            levelsWithRevision?.forEachIndexed { index, level ->
+                listOfUiLevel.add(
+                    LevelUI(
+                        levelId = level.id,
+                        stage = (this.studyNote?.totalLevel!! +index+1),
+                        icon = "",
+                        name = "",
+                        currentStage =this.studyNote?.currentStage ?: -1 ,
+                        isRevision = true,
+                        description = "",
+                        nextPlayUnix = 0
+
+                    )
+                )
+            }
         }
     }
 //    revision
-    listOfUiLevel.add(
-        LevelUI(
-            levelId = null,
-            stage = 0,
-            icon = "",
-            name = "",
-            isRevision = true,
-            description = "",
-            nextPlayUnix = 0
+    /*    listOfUiLevel.add(
+            LevelUI(
+                levelId = null,
+                stage = 0,
+                icon = "",
+                name = "",
+                isRevision = true,
+                description = "",
+                nextPlayUnix = 0
 
-        )
-    )
+            )
+        )*/
 
     return listOfUiLevel
 }

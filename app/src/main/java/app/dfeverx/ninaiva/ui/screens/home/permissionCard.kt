@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 
 
 @Composable
-fun UtilityCard(
+fun UtilityCard(modifier: Modifier=Modifier,
     title: String = "Notification permission ",
     description: String = "Inorder to notify about revision schedule notification permission required .",
     askText: String? = "Ask",
@@ -32,7 +32,7 @@ fun UtilityCard(
     onAsked: () -> Unit
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
             .background(backgroundColor)

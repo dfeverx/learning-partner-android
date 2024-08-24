@@ -31,9 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import app.dfeverx.ninaiva.R
+import app.dfeverx.ninaiva.datastore.StreakInfo
 import app.dfeverx.ninaiva.ui.Screens
 import app.dfeverx.ninaiva.ui.components.ModernGrid
 import app.dfeverx.ninaiva.ui.components.ProgressCard
+import app.dfeverx.ninaiva.ui.main.MainViewModel
+import app.dfeverx.ninaiva.utils.activityViewModel
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
@@ -44,9 +47,19 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 @Composable
 fun Statistics(navController: NavController) {
     val statisticsViewModel = hiltViewModel<StatisticsViewModel>()
+    val mainViewModel = activityViewModel<MainViewModel>()
+
     val statisticUiState by statisticsViewModel.uiState.collectAsState()
     val scrollBehavior =
         TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+
+    val streakState = mainViewModel.streakInfoFlow.collectAsState(
+        initial = StreakInfo(
+            0,
+            0
+        )
+    )
+    val isGotStreak = statisticsViewModel.isGotStreak.collectAsState()
 
 
     Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -91,6 +104,14 @@ fun Statistics(navController: NavController) {
                             }
                         }
                     })
+                }
+                if (isGotStreak.value) {
+                    item {
+                        StreakAddedCard(
+                            title = streakState.value.count.toString(),
+                            description = "You got one streak for this successful attempt"
+                        )
+                    }
                 }
             }
 
@@ -159,17 +180,15 @@ fun PlayResult(statisticUiState: StatisticsUiState, isGoToHomeScreen: (Boolean) 
         ) {
 
         }
-
-        Button(
-            modifier = Modifier.padding(16.dp),
-            onClick = { isGoToHomeScreen(statisticUiState.isSuccessfulAttempt) }) {
-            if (statisticUiState.isSuccessfulAttempt) {
-                Icon(imageVector = Icons.Outlined.Home, contentDescription = "")
-                Text(modifier = Modifier.padding(start = 4.dp), text = "Go to home")
-            } else {
+        if (!statisticUiState.isSuccessfulAttempt) {
+            Button(
+                modifier = Modifier.padding(16.dp),
+                onClick = { isGoToHomeScreen(statisticUiState.isSuccessfulAttempt) }) {
                 Icon(imageVector = Icons.Outlined.Replay, contentDescription = "")
                 Text(modifier = Modifier.padding(start = 4.dp), text = "Retry now")
             }
         }
     }
+
 }
+

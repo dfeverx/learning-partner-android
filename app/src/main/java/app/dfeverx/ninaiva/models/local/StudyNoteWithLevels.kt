@@ -92,6 +92,17 @@ fun StudyNote.genLevelUntilCurrentStage(allQuestions: List<Question>): List<Leve
 
         currentLevelQuestions.shuffle()
 
+        if (i == 1) {
+            levelList.add(
+                Level(
+                    stage = this.totalLevel,
+                    questionIds = allQuestions.map { it.id },
+                    isCompleted = true,
+                    studyNoteId = this.id,
+                    isRevision = true
+                )
+            )
+        }
         levelList.add(
             Level(
 //                id = System.currentTimeMillis(),

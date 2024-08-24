@@ -2,7 +2,6 @@ package app.dfeverx.ninaiva.datastore
 
 import android.content.Context
 import android.util.Log
-import androidx.compose.ui.res.booleanResource
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -16,7 +15,6 @@ import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_IS_INITIA
 import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_RESET_IS_ACKNOWLEDGED
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Exclude
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -118,7 +116,7 @@ class StreakDataStore(
 class StreakInfo(
     val count: Int = 0, val from: Long = 0,
     @get:Exclude
-    val isAcknowledged: Boolean = true
+    val isAcknowledgedRest: Boolean = true
 ) {
 
     suspend fun toDataStore(dataStore: DataStore<Preferences>) {
@@ -126,7 +124,7 @@ class StreakInfo(
             it[STREAKS_COUNT] = count
             it[STREAKS_FROM] = from
             it[STREAKS_IS_INITIAL_FETCH] = false
-            it[STREAKS_RESET_IS_ACKNOWLEDGED] = isAcknowledged
+            it[STREAKS_RESET_IS_ACKNOWLEDGED] = isAcknowledgedRest
         }
     }
 
