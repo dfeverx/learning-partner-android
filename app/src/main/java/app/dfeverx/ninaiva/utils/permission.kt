@@ -25,7 +25,7 @@ fun Context.openNotificationSettings() {
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, this.packageName)
     } else
         intent.setAction("android.settings.APP_NOTIFICATION_SETTINGS")
-        intent.putExtra("app_package", this.packageName)
-        intent.putExtra("app_uid", this.applicationInfo.uid)
+    intent.putExtra("app_package", this.packageName)
+    intent.putExtra("app_uid", this.applicationInfo.uid)
     this.startActivity(intent)
 }

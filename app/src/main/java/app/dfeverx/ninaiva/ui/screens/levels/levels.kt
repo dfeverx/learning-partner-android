@@ -64,6 +64,9 @@ import app.dfeverx.ninaiva.ui.Screens
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.relativeTime
 import coil.compose.AsyncImage
+import com.valentinilk.shimmer.ShimmerBounds
+import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.shimmer
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,7 +137,7 @@ fun Levels(navController: NavController) {
                             showLevelNotReadyBottomSheet = true
                         } else {
                             if (levelViewModel.hasAlarmPermission()) {
-                                navController.navigate(Screens.Play.route + "/${noteId}/${it?.levelId}/${it?.stage}/${it?.isRevision}")
+                                navController.navigate(Screens.Play.route + "/${noteId}/${it?.levelId}/${it?.stage}/${true}")
                             } else {
                                 Toast.makeText(
                                     context,
@@ -153,7 +156,7 @@ fun Levels(navController: NavController) {
                     }
                 } else {
                     if (it != null) {
-                        LevelItemGroup(modifier = Modifier, level = it, onClick = {
+                        LevelItemGroupPh(modifier = Modifier, level = it, onClick = {
                             Log.d("TAG", "Levels: $it ")
                             if (it.levelId == null || (it.nextPlay == TimePeriod.FUTURE && it.stage == it.currentStage)) {
                                 showLevelNotReadyBottomSheet = true
@@ -206,8 +209,11 @@ fun Levels(navController: NavController) {
 
 @Composable
 fun LevelItemGroup(modifier: Modifier, level: LevelUI, onClick: (LevelUI) -> Unit) {
+    val isPlaceholder = level.isPlaceholder
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
     Column(
         modifier = modifier
+            .then(if (isPlaceholder) Modifier.shimmer(shimmerInstance) else Modifier)
             .fillMaxWidth()
             .clickable { onClick(level) }
             .padding(horizontal = 16.dp)
@@ -307,13 +313,165 @@ fun LevelItemGroup(modifier: Modifier, level: LevelUI, onClick: (LevelUI) -> Uni
                     .heightIn(min = 64.dp)
                     .padding(bottom = 32.dp)
             ) {
-//                todo: add level variations
+
 
             }
 
         }
     }
 }
+
+@Composable
+fun LevelItemGroupPh(
+    modifier: Modifier = Modifier,
+    level: LevelUI, // level is not nullable now
+    onClick: (LevelUI) -> Unit = {}
+) {
+    // Shimmer instance
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
+
+    // Check if the component should show the loading state
+    val isLoading = level.isPlaceholder
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isLoading) { onClick(level) }
+            .padding(horizontal = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Box(modifier = Modifier, contentAlignment = Alignment.Center) {
+                if (isLoading) {
+                    // Shimmer placeholder for image
+                    Box(
+                        modifier = Modifier
+                            .size(78.dp)
+                            .clip(CircleShape)
+                            .shimmer(shimmerInstance)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                } else {
+                    // Actual content
+                    AsyncImage(
+                        model = "", // Update with your image model
+                        contentDescription = "Profile picture",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(78.dp)
+                            .clip(CircleShape)
+                            .background(if (level.isPlayable) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant)
+                            .border(
+                                width = 4.dp,
+                                color = if (level.isPlayable) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = CircleShape
+                            )
+                            .padding(2.dp)
+                    )
+                    Text(text = level.icon, style = MaterialTheme.typography.displaySmall)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+            ) {
+                if (isLoading) {
+                    // Shimmer placeholder for text
+                    Box(
+                        modifier = Modifier
+                            .height(24.dp)
+                            .fillMaxWidth(0.5f)
+                            .clip(MaterialTheme.shapes.medium)
+                            .shimmer(shimmerInstance)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(16.dp)
+                            .fillMaxWidth(0.4f)
+                            .clip(MaterialTheme.shapes.medium)
+                            .shimmer(shimmerInstance)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                } else {
+                    // Actual content
+                    Text(text = level.name, style = MaterialTheme.typography.titleLarge)
+                    if (level.description.isNotEmpty() && level.nextPlayUnix.toInt() != 0) {
+                        Text(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(8.dp),
+                            text = level.nextPlayUnix.relativeTime(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+            if (!isLoading) {
+                if (level.stage == level.currentStage) {
+                    when (level.nextPlay) {
+                        TimePeriod.TODAY, TimePeriod.PAST -> {
+                            Button(onClick = { onClick(level) }) {
+                                Text(text = "Play now")
+                            }
+                        }
+
+                        else -> {
+                            Icon(
+                                modifier = Modifier.padding(end = 16.dp),
+                                imageVector = Icons.Outlined.Lock,
+                                contentDescription = "",
+                                tint = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
+                    }
+
+                } else if (level.stage > level.currentStage) {
+                    Icon(
+                        modifier = Modifier.padding(end = 16.dp),
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = "",
+                        tint = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+            }
+        }
+
+        Row(modifier = Modifier.height(IntrinsicSize.Max)) {
+            Column(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .width(78.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Divider(
+                    color = if (level.currentStage > level.stage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .width(5.dp)
+                        .fillMaxHeight()
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .heightIn(min = 64.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                // Additional content or placeholder if necessary
+            }
+        }
+    }
+}
+
 
 
 @Preview

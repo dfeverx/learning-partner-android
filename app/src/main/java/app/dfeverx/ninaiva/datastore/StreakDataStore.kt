@@ -46,7 +46,10 @@ class StreakDataStore(
         }
         try {
             val result =
-                firestore.collection("users").document(auth.currentUser!!.uid).collection("streak")
+                firestore
+                    .collection("users")
+                    .document(auth.currentUser!!.uid)
+                    .collection("streak")
                     .document("v1").get().await()
 
             if (result.exists()) {

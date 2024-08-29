@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -146,7 +147,9 @@ fun FeaturesList(
     mainViewModel: MainViewModel
 ) {
 
-
+    val features = mainViewModel.planDetails(
+        collectAsState.value?.basePlanId ?: "weekly"
+    ).features
     val (firstHalf, secondHalf) = splitList(
         mainViewModel.planDetails(
             collectAsState.value?.basePlanId ?: "weekly"
@@ -162,21 +165,20 @@ fun FeaturesList(
 
         ) {
 
-
-            firstHalf.forEach {
+            features.forEach {
                 FeaturesItem(it)
             }
         }
-        Column(
-            modifier = Modifier.weight(1f)
+        /* Column(
+             modifier = Modifier.weight(1f)
 
-        ) {
+         ) {
 
 
-            secondHalf.forEach {
-                FeaturesItem(it)
-            }
-        }
+             secondHalf.forEach {
+                 FeaturesItem(it)
+             }
+         }*/
     }
 
 }
@@ -193,13 +195,15 @@ private fun FeaturesItem(it: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.Check,
+            imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+//            tint = MaterialTheme.colorScheme.primary
         )
         Text(
             text = it,
-            modifier = Modifier.padding(start = 8.dp),
+            modifier = Modifier
+                .padding(start = 8.dp)
+                .fillMaxWidth(),
             style = MaterialTheme.typography.bodySmall
         )
     }

@@ -17,8 +17,8 @@ android {
         applicationId = "app.dfeverx.ninaiva"
         minSdk = 25
         targetSdk = 34
-        versionCode = 21
-        versionName = "0.21"
+        versionCode = 23
+        versionName = "0.23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

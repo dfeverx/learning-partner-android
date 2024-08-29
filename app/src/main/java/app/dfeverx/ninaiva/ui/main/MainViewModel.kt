@@ -245,6 +245,7 @@ class MainViewModel @Inject constructor(
                 studyNoteList.add(note)
                 viewModelScope.launch {
                     val _r = studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(note)
+//                    todo : schedule the alarm only if notification and alarm permission given
                     val allStudyNotes = studyNoteRepository.allStudyNoted()
                     alarmManager.scheduleAlarm(allStudyNotes, application)
                     streakValidation()
@@ -277,6 +278,7 @@ class MainViewModel @Inject constructor(
                 val totalBytesToDownload = state.totalBytesToDownload()
                 val progress = bytesDownloaded.toFloat() / totalBytesToDownload
                 _inAppUpdateState.update { currentState ->
+                    currentState.isVisible = true
                     currentState.progress = progress
                     currentState.isReadyToInstall = false
                     currentState.isDownloading = true
@@ -286,6 +288,7 @@ class MainViewModel @Inject constructor(
 
             InstallStatus.DOWNLOADED -> {
                 _inAppUpdateState.update { currentState ->
+                    currentState.isVisible = true
                     currentState.progress = 0f
                     currentState.isReadyToInstall = true
                     currentState.isDownloading = false
@@ -293,7 +296,40 @@ class MainViewModel @Inject constructor(
                 }
             }
 
-            else -> {}
+            /*
+                        InstallStatus.CANCELED -> {
+                            TODO()
+                        }
+
+                        InstallStatus.FAILED -> {
+                            TODO()
+                        }
+
+                        InstallStatus.INSTALLED -> {
+                            TODO()
+                        }
+
+                        InstallStatus.INSTALLING -> {
+                            TODO()
+                        }
+
+                        InstallStatus.PENDING -> {
+                            TODO()
+                        }
+
+                        InstallStatus.REQUIRES_UI_INTENT -> {
+                            TODO()
+                        }
+
+                        InstallStatus.UNKNOWN -> {
+                            TODO()
+                        }*/
+            else -> {
+                _inAppUpdateState.update { currentState ->
+                    currentState.isVisible = false
+                    return
+                }
+            }
         }
     }
 
@@ -481,11 +517,11 @@ class MainViewModel @Inject constructor(
         } else if (_isPro.value) {
 //            premium user
 //            up to 50 note per month
-            _creditAndSubscriptionInfo.value.credit.monthlyNoteCount <= NOTE_CREATTION_LIMT_PREMIUM || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
+            _creditAndSubscriptionInfo.value.credit.monthlyNoteCount < NOTE_CREATTION_LIMT_PREMIUM || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
         } else {
 //            auth user non premium
 //            up to 5 notes per month
-            _creditAndSubscriptionInfo.value.credit.monthlyNoteCount <= NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
+            _creditAndSubscriptionInfo.value.credit.monthlyNoteCount < NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
         }
     }
 //    limiting fun end

@@ -3,14 +3,17 @@ package app.dfeverx.ninaiva.ui.screens.play
 import android.app.Activity
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +22,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
@@ -67,6 +71,9 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.valentinilk.shimmer.ShimmerBounds
+import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.shimmer
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -148,18 +155,21 @@ fun Play(navController: NavController) {
 
 
     }, bottomBar = {
-        FilledTonalButton(modifier = Modifier
-            .background(MaterialTheme.colorScheme.surface)
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp)
-            .padding(top = 16.dp)
-            .padding(bottom = 8.dp)
-            .fillMaxWidth(), onClick = {
+        AnimatedVisibility(playUiState.questions?.first()?.isPlaceholder == false) {
+            FilledTonalButton(modifier = Modifier
+                .background(MaterialTheme.colorScheme.surface)
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp)
+                .padding(top = 16.dp)
+                .padding(bottom = 8.dp)
+                .fillMaxWidth(), onClick = {
 
-            showResultBottomSheet = true
-        }) {
-            Text(text = "Check ")
+                showResultBottomSheet = true
+            }) {
+                Text(text = "Check ")
+            }
         }
+
     })
     if (showResultBottomSheet) {
         ModalBottomSheet(/* properties = ModalBottomSheetProperties(
@@ -211,9 +221,20 @@ fun MCQPlay(
     readLoud: () -> Unit,
     handleAttempt: (Option) -> Unit
 ) {
-    Column(modifier = modifier.padding(vertical = 16.dp, horizontal = 16.dp)) {
+    val isPlaceholder = question.isPlaceholder
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
+
+    Column(
+        modifier = modifier
+            .padding(vertical = 16.dp, horizontal = 16.dp)
+            .then(if (isPlaceholder) Modifier.shimmer(shimmerInstance) else Modifier),
+    ) {
         Row {
-            Button(modifier = Modifier.height(32.dp), onClick = { readLoud() }) {
+            Button(
+                modifier = Modifier.height(32.dp),
+                onClick = { readLoud() },
+                enabled = !isPlaceholder
+            ) {
                 Icon(
                     Icons.Outlined.VolumeUp,
                     "Read loud",
@@ -222,17 +243,44 @@ fun MCQPlay(
                         .clip(MaterialTheme.shapes.extraLarge)
                         .clickable {},
                 )
-                Text(modifier = Modifier.padding(start = 8.dp), text = "Read loud")
+                if (isPlaceholder) {
+                    Box(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .width(60.dp)
+                            .height(20.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    )
+                } else {
+                    Text(modifier = Modifier.padding(start = 8.dp), text = "Read loud")
+                }
             }
 
         }
-        Text(
-            modifier = Modifier.padding(vertical = 16.dp),
-            text = question.statement,
-            style = MaterialTheme.typography.displayMedium
-        )
+        if (isPlaceholder) {
+            Column(modifier = Modifier.padding(vertical = 32.dp)) {
+                repeat(3) {
+                    Box(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.medium)
+                            .fillMaxWidth(if (it == 3) .6f else 1f)
+                            .height(20.dp)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        } else {
+
+
+            Text(
+                modifier = Modifier.padding(vertical = 16.dp),
+                text = question.statement,
+                style = MaterialTheme.typography.displayMedium
+            )
+        }
         question.options.forEach {
-            MCQOption(it, attempts, handleAttempt)
+            MCQOption(it, attempts, isPlaceholder, handleAttempt)
 
         }
 
@@ -242,7 +290,12 @@ fun MCQPlay(
 
 
 @Composable
-fun MCQOption(option: Option, attempts: List<Option>, handleAttempt: (Option) -> Unit) {
+fun MCQOption(
+    option: Option,
+    attempts: List<Option>,
+    isPlaceholder: Boolean,
+    handleAttempt: (Option) -> Unit
+) {
     val result = attempts.find { atmpt -> atmpt.content == option.content }
     OutlinedButton(modifier = Modifier
         .padding(vertical = 16.dp, horizontal = 0.dp)
@@ -255,17 +308,29 @@ fun MCQOption(option: Option, attempts: List<Option>, handleAttempt: (Option) ->
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            RadioButton(modifier = Modifier.padding(0.dp),
-                selected = result != null,
-                onClick = { handleAttempt(option) })
-            Text(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp),
-                text = option.content,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            if (isPlaceholder) {
+                Box(
+                    modifier = Modifier
+                        .padding(12.dp)
+                        .clip(MaterialTheme.shapes.medium)
+                        .fillMaxWidth(1f)
+                        .height(20.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            } else {
+
+                RadioButton(modifier = Modifier.padding(0.dp),
+                    selected = result != null,
+                    onClick = { handleAttempt(option) })
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 8.dp),
+                    text = option.content,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
     }
 }

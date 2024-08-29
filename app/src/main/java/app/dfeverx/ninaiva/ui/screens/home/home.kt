@@ -415,7 +415,7 @@ fun Home(navController: NavHostController) {
                             }
                         }
                     }
-                    if (inAppUpdateState.value.appUpdateInfo != null) {
+                    if (inAppUpdateState.value.appUpdateInfo != null && inAppUpdateState.value.isVisible) {
                         item(span = StaggeredGridItemSpan.FullLine) {
                             InAppUpdateCard(state = inAppUpdateState.value)
                         }
@@ -502,7 +502,7 @@ fun Home(navController: NavHostController) {
                         } else {
 
                             StudyNoteOverviewItem(studyNote = studyNote,
-                                homeViewModel = homeViewModel,
+                                hasQuota = hasQuota.value,
                                 onClickNote = {
                                     if (notificationPermission?.status?.isGranted == false) {
                                         notificationPermission.launchPermissionRequest()
@@ -535,6 +535,11 @@ fun Home(navController: NavHostController) {
                                     navController.navigate(
                                         Screens.DocViewer.route + "/" + it.id
                                     )
+                                }, retry = {
+                                    homeViewModel.retryCreateNote(it)
+                                    coroutineScope.launch {
+                                        lazyStaggeredGridState.scrollToItem(0)
+                                    }
                                 })
                         }
                     }
@@ -628,14 +633,16 @@ fun Home(navController: NavHostController) {
 @Composable
 fun StudyNoteOverviewItem(
     studyNote: StudyNote,
-    homeViewModel: HomeViewModel,
+
+    hasQuota: Boolean,
     onClickNote: (StudyNote) -> Unit,
     onClickTag: (String) -> Unit,
-    openDocument: (StudyNote) -> Unit
+    openDocument: (StudyNote) -> Unit,
+    retry: (StudyNote) -> Unit
 ) {
 
     OutlinedCard(modifier = Modifier, onClick = {
-        if ((!studyNote.isProcessing) && studyNote.status != -1) {
+        if (studyNote.status > 2) {
             onClickNote(studyNote)
         }
     }) {
@@ -658,8 +665,8 @@ fun StudyNoteOverviewItem(
         } else if (studyNote.status in 1..2) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                contentColor = MaterialTheme.colorScheme.surface,
-                color = MaterialTheme.colorScheme.onSurface
+                contentColor = if (hasQuota) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.errorContainer,
+                color = if (hasQuota) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
@@ -670,15 +677,16 @@ fun StudyNoteOverviewItem(
 
                         Text(
                             modifier = Modifier,
-                            text = "Failed",
+                            text = if (hasQuota) "Failed" else "Failed, you can retry this after you have a valid quota!",
                             color = MaterialTheme.colorScheme.surface
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        Button(onClick = {
-//                            homeViewModel.retryStudyNoteGen(studyNote)
-                            homeViewModel.retryCreateNote(studyNote)
-                        }) {
-                            Text(text = "Retry")
+                        if (hasQuota) {
+                            Button(onClick = {
+                                retry(studyNote)
+                            }) {
+                                Text(text = "Retry")
+                            }
                         }
 
 
@@ -873,7 +881,8 @@ fun ProcessingNote(modifier: Modifier = Modifier, studyNote: StudyNote) {
                     .padding(8.dp),
                 text = if (studyNote.status == NOTE_PROCESSING_UPLOADING_PDF) "1/3 Uploading" else if (studyNote.status == NOTE_PROCESSING_FUN_CALLING) "2/3 Key points" else "...",
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center
             )
         }
 

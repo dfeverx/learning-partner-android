@@ -151,7 +151,7 @@ fun UserProfileBottomSheetContent(
                         /*This will be the actual content you wish you share.*/
                         /*This will be the actual content you wish you share.*/
                         val shareBody =
-                            "Try this amazing AI chat bot  https://play.google.com/store/apps/details?id=${activity.packageName}"
+                            "Try this amazing learning app Ninaiva : Flash cards quizzes and more  https://play.google.com/store/apps/details?id=${activity.packageName}"
                         /*The type of the content is text, obviously.*/
                         /*The type of the content is text, obviously.*/intent1.type = "text/plain"
                         /*Applying information Subject and Body.*/

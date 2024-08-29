@@ -25,7 +25,6 @@ class StudyNote(
     var srcLng: List<String> = listOf(),
     var totalLevel: Int = 5,
     var status: Int = 0
-
     /*
     * -100 : local pdf file corrupted
     * -101 : uploading pdf..

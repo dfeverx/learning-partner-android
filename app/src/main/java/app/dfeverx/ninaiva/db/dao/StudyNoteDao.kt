@@ -38,13 +38,14 @@ interface StudyNoteDao {
     @Query("SELECT * FROM study_notes WHERE id = :noteId")
     suspend fun studyNoteWithQuestions(noteId: String): StudyNoteWithQuestions?
 
-    @Query("UPDATE study_notes SET score =:score, accuracy=:accuracy, currentStage = :stage ,nextLevelIn = :nextLevelIn  WHERE id=:studyNoteId")
+    @Query("UPDATE study_notes SET score =:score, accuracy=:accuracy, currentStage = :stage ,nextLevelIn = :nextLevelIn,isInLTM=:isInLTM  WHERE id=:studyNoteId")
     suspend fun updateStageNextAttemptScoreAccuracy(
         studyNoteId: String,
         stage: Int,
         nextLevelIn: Long,
         score: Int,
-        accuracy: Int
+        accuracy: Int,
+        isInLTM: Boolean = false
     ): Int
 
 

@@ -21,6 +21,9 @@ interface QuestionDao {
 
 
     @Query("SELECT * FROM questions WHERE studyNoteId =:studyNoteId")
-    suspend  fun allQuestionsByStudyNoteId(studyNoteId: String): List<Question>
+    suspend fun allQuestionsByStudyNoteId(studyNoteId: String): List<Question>
+
+    @Query("SELECT COUNT(id) FROM questions WHERE studyNoteId=:studyNoteId")
+    suspend fun questionCount(studyNoteId: String): Int
 
 }

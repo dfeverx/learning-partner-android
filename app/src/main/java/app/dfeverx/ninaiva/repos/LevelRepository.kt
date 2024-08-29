@@ -24,7 +24,12 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
 
     //    use this only the note details and question are available in the db,return nextAttempt data so in vm schedule notification
     suspend fun createNewLevelOnlyIfNotExist(
-        studyNoteId: String, score: Int, stage: Int, accuracy: Int, nextAttemptUnix: Long
+        studyNoteId: String,
+        score: Int,
+        stage: Int,
+        accuracy: Int,
+        nextAttemptUnix: Long,
+        isRevision: Boolean = false
     ): Long {
         return appDatabase.withTransaction {
             /*          val currentUnix = System.currentTimeMillis()
@@ -57,25 +62,28 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
                 appDatabase.studyNotesDao().studyNoteWithQuestions(studyNoteId)
 
             val isNextRevision = studyNoteWithAllQuestions?.studyNote?.totalLevel == stage
+
             Log.d(
                 TAG,
                 "createNewLevelOnlyIfNotExist: totalLevel ${studyNoteWithAllQuestions?.studyNote?.totalLevel}, stage $stage"
             )
             Log.d(TAG, "createNewLevelOnlyIfNotExist: $isNextRevision")
+            val nextStage = if (isRevision) stage else stage + 1
 //            update to study notes stage local db
             appDatabase
                 .studyNotesDao()
                 .updateStageNextAttemptScoreAccuracy(
                     studyNoteId = studyNoteWithAllQuestions!!.studyNote!!.id,
-                    stage = stage + 1,
+                    stage = nextStage,
                     nextLevelIn = if (isNextRevision) 0 else nextAttemptUnix, //unix timestamp
                     score = score,
+                    isInLTM = isNextRevision,
                     accuracy = accuracy
                 )
 //            update note in the firestore
             updateStudyNoteInFirestore(
                 studyNoteId = studyNoteWithAllQuestions.studyNote!!.id,
-                stage = stage + 1,
+                stage = nextStage,
                 nextLevelIn = if (isNextRevision) 0 else nextAttemptUnix,
                 score = score,
                 accuracy = accuracy
@@ -84,13 +92,13 @@ class LevelRepository @Inject constructor(private val appDatabase: AppDatabase) 
 
 //            create new level
 //            only if it is not revision ,for revision it is create when added to the db
-            return@withTransaction if (!isNextRevision) {
+            return@withTransaction if (!isNextRevision && !isRevision) {
                 appDatabase.levelDao()
                     .addLevel(
 
                         studyNoteWithAllQuestions.studyNote!!.genNextLevel(
                             allQuestions = studyNoteWithAllQuestions.questions!!,
-                            stage = stage + 1
+                            stage = nextStage
                         )
 
 

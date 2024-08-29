@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import app.dfeverx.ninaiva.LearningPartnerApplication
 import app.dfeverx.ninaiva.R
+import app.dfeverx.ninaiva.datastore.AppInfoDataStore
 import app.dfeverx.ninaiva.datastore.CreditAndSubscriptionDataStore
 import app.dfeverx.ninaiva.datastore.StreakDataStore
 import app.dfeverx.ninaiva.db.AppDatabase
@@ -135,6 +136,13 @@ object AppModule {
         auth: FirebaseAuth
     ): CreditAndSubscriptionDataStore {
         return CreditAndSubscriptionDataStore(context, firestore, auth)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideAppInfoDataStore(@ApplicationContext context: Context): AppInfoDataStore {
+        return AppInfoDataStore(context)
     }
 
     @Provides

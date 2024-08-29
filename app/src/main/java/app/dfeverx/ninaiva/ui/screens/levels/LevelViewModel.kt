@@ -13,6 +13,7 @@ import app.dfeverx.ninaiva.utils.getTimePeriod
 import app.dfeverx.ninaiva.utils.hasPermission
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import org.ocpsoft.prettytime.PrettyTime
@@ -31,7 +32,85 @@ class LevelViewModel @Inject constructor(
 
     //    todo: shimmer anim
     private val _studyNoteWithLevels: MutableStateFlow<List<LevelUI?>> = MutableStateFlow(
-        listOf()
+        listOf(
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+            LevelUI(
+                levelId = -1,
+                stage = 0,
+                icon = "",
+                name = "",
+                isPlayable = false,
+                description = "",
+                nextPlayUnix = 0,
+                isRevision = false,
+                isPlaceholder = true
+            ),
+        )
     )
     val levels: MutableStateFlow<List<LevelUI?>>
         get() = _studyNoteWithLevels
@@ -39,6 +118,7 @@ class LevelViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            delay(800)
             levelRepository.studyNoteWithQuestions(studyNoteId).collect { studyNote ->
                 _studyNoteWithLevels.value = studyNote?.uiLevels(prettyTime) ?: listOf()
                 Log.d(TAG, "init: $studyNoteId")
@@ -69,8 +149,8 @@ private fun StudyNoteWithLevels.uiLevels(prettyTime: PrettyTime): List<LevelUI> 
         else -> {
             val levelsWithOutRevision = this.levels?.filter { !it.isRevision }
             val levelsWithRevision = this.levels?.filter { it.isRevision }
-
             for (i in 1..(this.studyNote?.totalLevel!!)) {
+//todo: limit i max level icon size
                 listOfUiLevel.add(
                     LevelUI(
                         levelId = levelsWithOutRevision?.getOrNull(i - 1)?.id,// todo: improve
@@ -95,10 +175,10 @@ private fun StudyNoteWithLevels.uiLevels(prettyTime: PrettyTime): List<LevelUI> 
                 listOfUiLevel.add(
                     LevelUI(
                         levelId = level.id,
-                        stage = (this.studyNote?.totalLevel!! +index+1),
+                        stage = (this.studyNote?.totalLevel!! + index + 1),
                         icon = "",
                         name = "",
-                        currentStage =this.studyNote?.currentStage ?: -1 ,
+                        currentStage = this.studyNote?.currentStage ?: -1,
                         isRevision = true,
                         description = "",
                         nextPlayUnix = 0
@@ -135,5 +215,6 @@ data class LevelUI(
     val nextPlay: TimePeriod? = null,
     val nextPlayUnix: Long,
     val description: String,
-    val isRevision: Boolean = false
+    val isRevision: Boolean = false,
+    val isPlaceholder: Boolean = false
 )

@@ -70,6 +70,7 @@ class StatisticsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            Log.d(TAG, "isRevision: $isRevision ")
 //            minimum accuracy threshold for creating new level is 60% accuracy other wise show failed retry
             if (accuracy >= MINIMUM_THRESHOLD_ACCURACY_FOR_NEXT_LEVEL) {
 
@@ -90,6 +91,7 @@ class StatisticsViewModel @Inject constructor(
                         stage = stage,
                         score = score,
                         accuracy = accuracy,
+                        isRevision = isRevision,
                         nextAttemptUnix = nextAttemptUnix
                     )
 //                todo: show the level creation message if failed option to retry

@@ -3,31 +3,32 @@ package app.dfeverx.ninaiva.ui.screens.notes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RemoveRedEye
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +53,7 @@ import androidx.compose.ui.draw.paint
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,10 +67,13 @@ import app.dfeverx.ninaiva.ui.components.FilledInLineIconTextCard
 import app.dfeverx.ninaiva.ui.components.FlashCardOverview
 import app.dfeverx.ninaiva.ui.components.ModernCard
 import app.dfeverx.ninaiva.ui.components.NoInternetConnectionCard
-import app.dfeverx.ninaiva.ui.components.ProgressCard
+import app.dfeverx.ninaiva.ui.components.ProgressCardPh
 import app.dfeverx.ninaiva.ui.main.MainViewModel
 import app.dfeverx.ninaiva.utils.activityViewModel
 import app.dfeverx.ninaiva.utils.relativeTime
+import com.valentinilk.shimmer.ShimmerBounds
+import com.valentinilk.shimmer.rememberShimmer
+import com.valentinilk.shimmer.shimmer
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
 
@@ -80,6 +85,7 @@ fun NoteDetails(navController: NavHostController) {
     val noteViewModel = hiltViewModel<NoteViewModel>()
     val noteDetails by noteViewModel.studyNote.collectAsState()
     val flashCards by noteViewModel.flashCards.collectAsState()
+    val questionCount by noteViewModel.questionCount.collectAsState()
     val noteId = navController.currentBackStackEntry?.arguments?.getString("noteId")
     val lazyGridState = rememberLazyListState()
     val scrollBehavior =
@@ -191,20 +197,25 @@ fun NoteDetails(navController: NavHostController) {
 
                 }
             }
-            if (noteDetails.currentStage > 1) {
+            if (noteDetails.nextLevelIn != 0.toLong()) {
                 item {
                     FilledInLineIconTextCard(
                         modifier = Modifier.padding(horizontal = 8.dp),
                         icon = Icons.Outlined.CalendarToday,
                         description = noteDetails.nextLevelIn.relativeTime()
-                    )
+                    ) {
+                        if (noteDetails.nextLevelIn.relativeTime() == "Today")
+                            Button(onClick = { navController.navigate(Screens.Levels.route + "/" + noteId) }) {
+                                Text(text = "Attempt now")
+                            }
+                    }
                 }
             }
 
 
 
 
-            if (noteDetails.currentStage == 1) {
+            if (noteDetails.currentStage == 1 && questionCount > 1) {
                 item {
                     ModernCard {
                         navController.navigate(Screens.Levels.route + "/" + noteId)
@@ -218,13 +229,14 @@ fun NoteDetails(navController: NavHostController) {
 
             if (noteDetails.currentStage != 1) {
                 item {
-                    ProgressCard(
+                    ProgressCardPh(
                         modifier = Modifier,
                         levelStage = noteDetails.currentStage - 1,
                         score = noteDetails.score,
                         accuracy = noteDetails.accuracy,
                         levelProgress = ((noteDetails.currentStage - 1)) / noteDetails.totalLevel.toFloat(),
                         isPlayButtonVisible = true,
+                        isPlaceholder = noteDetails.isPlaceholder,
                         continuePlay = { navController.navigate(Screens.Levels.route + "/" + noteId) })
                 }
             }
@@ -238,12 +250,10 @@ fun NoteDetails(navController: NavHostController) {
                     style = MaterialTheme.typography.labelLarge
                 )
             }
-            noteDetails.keyAreas.forEach {
 
-                item {
 
-                    KeyAreaItem(keyArea = it)
-                }
+            items(noteDetails.keyAreas) {
+                KeyAreaItem(keyArea = it, isPlaceholder = noteDetails.isPlaceholder)
             }
 
 
@@ -251,27 +261,54 @@ fun NoteDetails(navController: NavHostController) {
     })
 }
 
+
 @Composable
 fun NoteHeaderDetails(noteDetails: StudyNote) {
-    Column {
-        Text(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .padding(top = 16.dp, bottom = 8.dp),
-            text = noteDetails.title,
-            style = MaterialTheme.typography.displaySmall
-        )
-        AsyncThumbnail(url = noteDetails.thumbnail, contentDescription = "")
-        /* AsyncImage(
-             modifier = Modifier
-                 .height(220.dp)
-                 .padding(horizontal = 0.dp, vertical = 8.dp)
-                 .background(MaterialTheme.colorScheme.surfaceVariant),
-             model = noteDetails.thumbnail,
-             contentDescription = "thumbnail image for ",
-             contentScale = ContentScale.Crop
-         )*/
+    val isPlaceholder: Boolean = noteDetails.isPlaceholder
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
 
+    Column {
+        // Title Placeholder
+        if (isPlaceholder) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 8.dp)
+                    .shimmer(shimmerInstance)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .fillMaxWidth(0.8f) // 80% width of the screen
+                        .height(24.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .fillMaxWidth(0.6f) // 60% width of the screen
+                        .height(24.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+            }
+        } else {
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 12.dp),
+                text = noteDetails.title,
+                style = MaterialTheme.typography.displaySmall,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Thumbnail
+//        if (!isPlaceholder) {
+        AsyncThumbnail(url = noteDetails.thumbnail, contentDescription = "")
+//        }
+
+        // Summary Placeholder
         Text(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
@@ -279,24 +316,46 @@ fun NoteHeaderDetails(noteDetails: StudyNote) {
             text = "Summary:",
             style = MaterialTheme.typography.labelLarge
         )
-        Text(
-            modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .padding(bottom = 16.dp),
-            text = noteDetails.summary,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        if (isPlaceholder) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 8.dp)
+                    .shimmer(shimmerInstance)
+            ) {
+                repeat(5) {
 
+                    Box(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.medium)
+                            .fillMaxWidth(if (it == 5) .6f else 1f)
+                            .height(20.dp)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        } else {
 
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(bottom = 16.dp),
+                text = noteDetails.summary,
+                style = MaterialTheme.typography.bodyLarge,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
-
 @Composable
-fun KeyAreaItem(modifier: Modifier = Modifier, keyArea: KeyArea) {
+fun KeyAreaItem(modifier: Modifier = Modifier, keyArea: KeyArea, isPlaceholder: Boolean = false) {
+    val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
     OutlinedCard(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .then(if (isPlaceholder) Modifier.shimmer(shimmerInstance) else Modifier)
     ) {
         Row(
             modifier = Modifier
@@ -308,7 +367,6 @@ fun KeyAreaItem(modifier: Modifier = Modifier, keyArea: KeyArea) {
             Text(
                 modifier = Modifier
                     .size(56.dp)
-//                    .clip(CircleShape)
                     .paint(
                         painterResource(id = R.drawable.grid),
                         contentScale = ContentScale.FillBounds
@@ -317,20 +375,49 @@ fun KeyAreaItem(modifier: Modifier = Modifier, keyArea: KeyArea) {
                     .padding(12.dp),
                 text = keyArea.emoji, style = MaterialTheme.typography.headlineSmall
             )
-            Text(
+            if (isPlaceholder) {
+
+                Box(
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.medium)
+                        .fillMaxWidth(.9f)
+                        .height(24.dp)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+            } else {
+                Text(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp),
+                    text = keyArea.name,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            }
+        }
+        if (isPlaceholder) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                repeat(5) {
+                    Box(
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.medium)
+                            .fillMaxWidth()
+                            .height(20.dp)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        } else {
+//         markdown support
+            MarkdownText(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 4.dp),
-                text = keyArea.name,
-                style = MaterialTheme.typography.headlineSmall
+                    .fillMaxWidth()
+                    .padding(16.dp), markdown = keyArea.info
             )
         }
-//         markdown support
-        MarkdownText(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp), markdown = keyArea.info
-        )
+
 
     }
 }

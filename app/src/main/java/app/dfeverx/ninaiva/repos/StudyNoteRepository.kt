@@ -108,9 +108,13 @@ class StudyNoteRepository @Inject constructor(private val appDatabase: AppDataba
         return appDatabase.studyNotesDao().allStudyNoteCount()
     }
 
-   suspend fun updatePdfStoragePath(noteId: String, storagePath: String): Int {
+    suspend fun updatePdfStoragePath(noteId: String, storagePath: String): Int {
         return appDatabase.studyNotesDao()
             .updatePdfStoragePath(noteId = noteId, storagePath = storagePath)
+    }
+
+    suspend fun questionCount(studyNoteId: String): Int {
+        return appDatabase.questionDao().questionCount(studyNoteId)
     }
 
 

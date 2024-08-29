@@ -7,15 +7,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.dfeverx.ninaiva.LearningPartnerApplication
 import app.dfeverx.ninaiva.models.local.Option
+import app.dfeverx.ninaiva.models.local.Question
 import app.dfeverx.ninaiva.repos.PlayRepository
 import com.google.gson.Gson
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.time.delay
 import java.util.Locale
 import javax.inject.Inject
 
@@ -36,11 +39,30 @@ class PlayViewModel @Inject constructor(
     val isReadingStateFlow: StateFlow<Boolean>
         get() = _isReadingStateFlow
 
-    private val _uiState = MutableStateFlow(PlayUiState(stage))
+    private val _uiState = MutableStateFlow(
+        PlayUiState(
+            stage, questions = listOf(
+                Question(
+
+                    id = -1, "", "",
+                    options = listOf(
+                        Option("", false),
+                        Option("", false),
+                        Option("", false),
+                        Option("", false),
+                    ),
+                    difficulty = 0,
+                    explanation = ""
+
+                ).apply { isPlaceholder = true }
+            ), currentQuestionIndex = 0
+        )
+    )
     val uiState: StateFlow<PlayUiState> = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            delay(2000)
             playRepository.questionsByLevelId(levelId).let {
                 _uiState.value = PlayUiState(
                     stage = stage,
@@ -110,15 +132,15 @@ class PlayViewModel @Inject constructor(
 
     fun readLoud() {
 //        if (_isReadingStateFlow.value) {
-            val question = _uiState.value.questions?.get(_uiState.value.currentQuestionIndex)
-            val questionPayload =
-                question?.statement+" ?." + question?.options?.mapIndexed { i, item -> "Option " + (i + 1) + "." + item.content + "/n" }
-            tts.speak(
-                questionPayload.removeSpecialCharacters(),
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                null
-            )
+        val question = _uiState.value.questions?.get(_uiState.value.currentQuestionIndex)
+        val questionPayload =
+            question?.statement + " ?." + question?.options?.mapIndexed { i, item -> "Option " + (i + 1) + "." + item.content + "/n" }
+        tts.speak(
+            questionPayload.removeSpecialCharacters(),
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            null
+        )
 //        } else {
 //            tts.stop()
 //            _isReadingStateFlow

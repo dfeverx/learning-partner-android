@@ -1,5 +1,6 @@
 package app.dfeverx.ninaiva.ui.screens.home
 
+import android.app.AlarmManager
 import android.net.Uri
 import android.util.Log
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,8 @@ import androidx.compose.material.icons.outlined.StickyNote2
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.dfeverx.ninaiva.LearningPartnerApplication
+import app.dfeverx.ninaiva.datastore.AppInfoDataStore
 import app.dfeverx.ninaiva.datastore.CreditAndSubscriptionDataStore
 import app.dfeverx.ninaiva.models.CreditAndSubscriptionInfo
 import app.dfeverx.ninaiva.models.local.NOTE_PROCESSING_FUN_CALLING
@@ -43,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -55,6 +59,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val application: LearningPartnerApplication,
+    private val alarmManager: AlarmManager,
     private val homeRepository: HomeRepository,
     private val studyNoteRepository: StudyNoteRepository,
     private val prettyTime: PrettyTime, private val gson: Gson,
@@ -62,7 +68,8 @@ class HomeViewModel @Inject constructor(
     private val storage: FirebaseStorage,
     private val functions: FirebaseFunctions,
     private val firestore: FirebaseFirestore,
-    private val creditSubscriptionDataStore: CreditAndSubscriptionDataStore
+    private val creditSubscriptionDataStore: CreditAndSubscriptionDataStore,
+    private val appInfoDataStore: AppInfoDataStore
 ) : ViewModel() {
     private val TAG = "HomeViewModel"
 
@@ -73,6 +80,7 @@ class HomeViewModel @Inject constructor(
         val timePeriod: TimePeriod
     )
 
+    private val appOnboardInfo = appInfoDataStore.appOnboardInfoFlow
     private val _repetitionSchedules: MutableStateFlow<List<RepetitionSchedule>> = MutableStateFlow(
         listOf()
     )
@@ -176,6 +184,18 @@ class HomeViewModel @Inject constructor(
                 newSubjectAndGrouping.add(TextIcon(Icons.Outlined.AutoDelete, "Trash", "trash"))
                 _subjectsAndGrouping.value = newSubjectAndGrouping
             }
+        }
+        viewModelScope.launch {
+            if (!appOnboardInfo.first().isNotificationScheduled) {
+                Log.d(TAG, "init scheduling note : ")
+                val allStudyNotes = studyNoteRepository.allStudyNoted()
+                appInfoDataStore.updateNotificationScheduled(
+                    application = application,
+                    alarmManager = alarmManager,
+                    allStudyNotes = allStudyNotes
+                )
+            }
+
         }
     }
 
