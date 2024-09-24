@@ -77,6 +77,9 @@ class StudyNoteRepository @Inject constructor(private val appDatabase: AppDataba
     suspend fun allStudyNoted(): List<StudyNote> {
         return appDatabase.studyNotesDao().getAllStudyNotes()
     }
+    suspend fun getAllUnattemptedStudyNotes(): List<StudyNote> {
+        return appDatabase.studyNotesDao().getAllUnattemptedStudyNotes()
+    }
 
     suspend fun resetNoteProgress(noteId: String): Int {
 //   todo:     update in firestore

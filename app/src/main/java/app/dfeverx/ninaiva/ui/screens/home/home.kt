@@ -662,7 +662,7 @@ fun StudyNoteOverviewItem(
 
         if (studyNote.isProcessing) {
             ProcessingNote(studyNote = studyNote)
-        } else if (studyNote.status in 1..2) {
+        } else if (studyNote.status in 0..2) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 contentColor = if (hasQuota) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.errorContainer,

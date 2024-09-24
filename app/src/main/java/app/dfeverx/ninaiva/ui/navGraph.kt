@@ -29,10 +29,16 @@ fun appNavHost(
         startDestination = startDestination
     ) {
 
-        composable(Screens.Onboarding.route) {
+        composable(
+            Screens.Onboarding.route,
+            deepLinks = listOf(navDeepLink { uriPattern = "$uri/onboarding" })
+        ) {
             Onboarding(navController)
         }
-        composable(Screens.Home.route) {
+        composable(
+            Screens.Home.route,
+            deepLinks = listOf(navDeepLink { uriPattern = "$uri/home" })
+        ) {
             Home(navController)
         }
 

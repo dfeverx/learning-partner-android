@@ -1,5 +1,6 @@
 package app.dfeverx.ninaiva.models
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -53,6 +54,7 @@ class CreditAndSubscriptionInfo(
     var subscription: SubscriptionInfo = SubscriptionInfo()
 ) {
     suspend fun toDataStore(dataStore: DataStore<Preferences>) {
+        Log.d("TAG", "toDataStore: ${this.credit.toString()} ")
         credit.toDataStore(dataStore)
         subscription.toDataStore(dataStore)
     }

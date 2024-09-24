@@ -158,10 +158,12 @@ fun ProgressCard(
                         style = MaterialTheme.typography.labelSmall
                     )
                     LinearProgressIndicator(
+                        progress = {
+                            levelProgress
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp),
-                        progress = levelProgress
                     )
                 }
             }
@@ -272,10 +274,12 @@ fun ProgressCardPh(
                         )
                     }
                     LinearProgressIndicator(
+                        progress = {
+                            if (isPlaceholder) 0f else levelProgress
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp),
-                        progress = if (isPlaceholder) 0f else levelProgress
                     )
                 }
             }

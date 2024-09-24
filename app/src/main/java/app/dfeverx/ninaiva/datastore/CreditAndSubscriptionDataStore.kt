@@ -91,6 +91,8 @@ class CreditAndSubscriptionDataStore(
 
     suspend fun update(creditAndSubscriptionInfo: CreditAndSubscriptionInfo) {
         Log.d(TAG, "update: $creditAndSubscriptionInfo")
+        Log.d(TAG, "update: ${creditAndSubscriptionInfo.credit.monthlyNoteCount}")
+        Log.d(TAG, "update: ${creditAndSubscriptionInfo.credit.noteCount}")
         creditAndSubscriptionInfo.apply {
             credit.lastUpdated =
                 Timestamp(Date(System.currentTimeMillis()))

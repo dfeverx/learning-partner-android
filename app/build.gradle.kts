@@ -17,8 +17,8 @@ android {
         applicationId = "app.dfeverx.ninaiva"
         minSdk = 25
         targetSdk = 34
-        versionCode = 23
-        versionName = "0.23"
+        versionCode = 24
+        versionName = "0.24"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -86,6 +86,10 @@ dependencies {
     implementation(libs.androidx.compose.adaptive.layout)
     implementation(libs.androidx.compose.adaptive.navigation)
 //    implementation(libs.androidx.compose.adaptive.navigation.suite)
+
+//    glance
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.m3)
 
 //    accompanist
     implementation(libs.accompanist.pager)

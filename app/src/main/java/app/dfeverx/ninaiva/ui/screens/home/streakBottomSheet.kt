@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -27,6 +30,7 @@ import app.dfeverx.ninaiva.datastore.StreakInfo
 import app.dfeverx.ninaiva.ui.components.ModernGrid
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.relativeTime
+import app.dfeverx.ninaiva.utils.requestPinWidget
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
@@ -38,6 +42,7 @@ fun StreakBottomSheetContent(
     schedules: List<HomeViewModel.RepetitionSchedule>,
     streakInfo: State<StreakInfo>,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.streak))
     val logoAnimationState = animateLottieCompositionAsState(
         composition = composition, iterations = 100, restartOnPlay = false
@@ -46,6 +51,7 @@ fun StreakBottomSheetContent(
         modifier = Modifier
             .padding(bottom = 16.dp)
             .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
         ModernGrid(content = {
@@ -71,6 +77,10 @@ fun StreakBottomSheetContent(
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
+        OutlinedCard(onClick = { requestPinWidget(context) }) {
+            Text(text = "Add widget to home screen", modifier = Modifier
+                .padding(horizontal = 16.dp))
+        }
         if (!streakInfo.value.isAcknowledgedRest) {
             UtilityCard(
                 modifier = Modifier.padding(horizontal = 16.dp),

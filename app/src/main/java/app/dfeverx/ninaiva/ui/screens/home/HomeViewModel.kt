@@ -376,6 +376,7 @@ class HomeViewModel @Inject constructor(
                     studyNoteRepository.addStudyNoteAndQuestionsFromFirestore(funRes.data.apply {
                         this.id = noteId
                         this.docUrl = docUrl
+                        this.isOpened= false
                     })
                     creditSubscriptionDataStore.update(
                         CreditAndSubscriptionInfo(

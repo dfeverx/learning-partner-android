@@ -1,0 +1,19 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_scan_note"
+        android:shortcutDisabledMessage="@string/scan_note_disabled_message"
+        android:shortcutId="compose"
+        android:shortcutLongLabel="@string/scan_note_shortcut_long_label"
+        android:shortcutShortLabel="@string/scan_note_shortcut_short_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="app.dfeverx.ninaiva.ui.main.MainActivity"
+            android:targetPackage="app.dfeverx.ninaiva" />
+        <!-- If your shortcut is associated with multiple intents, include them
+             here. The last intent in the list determines what the user sees when
+             they launch this shortcut. -->
+<!--        <categories android:name="android.shortcut.conversation" />-->
+    </shortcut>
+    <!-- Specify more shortcuts here. -->
+</shortcuts>

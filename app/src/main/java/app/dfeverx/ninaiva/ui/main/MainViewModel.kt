@@ -23,6 +23,7 @@ import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.filterNotIn
 import app.dfeverx.ninaiva.utils.getTimePeriod
 import app.dfeverx.ninaiva.utils.hasPermission
+import app.dfeverx.ninaiva.utils.scheduleNotificationForNextSevenDays
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.ProductDetails.SubscriptionOfferDetails
 import com.android.billingclient.api.Purchase
@@ -57,10 +58,10 @@ class MainViewModel @Inject constructor(
     private val sharedPreferences: SharedPreferences,
     private val streakDataStore: StreakDataStore,
     private val creditSubscriptionDataStore: CreditAndSubscriptionDataStore,
-    private val firestore: FirebaseFirestore,
     private val alarmManager: AlarmManager,
     private val remoteConfig: FirebaseRemoteConfig,
     private val gson: Gson,
+    private val firestore: FirebaseFirestore,
     val auth: FirebaseAuth,
 ) : ViewModel() {
     companion object {
@@ -118,7 +119,7 @@ class MainViewModel @Inject constructor(
                 _studyNoteCount.value = it
             }
         }
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             creditSubscriptionDataStore.creditAndSubscriptionInfoFlow.collect {
                 Log.d(TAG, "creditInfoFlow: ${gson.toJson(it)} ")
 
@@ -130,6 +131,8 @@ class MainViewModel @Inject constructor(
             (System.currentTimeMillis() + (1000 * 10)),
             "test"
         )*/
+
+        alarmManager.scheduleNotificationForNextSevenDays(application)
     }
 
     private suspend fun streakValidation() {
@@ -158,7 +161,7 @@ class MainViewModel @Inject constructor(
         delayedNotes.map {
             levelRepository.updateStudyNoteInFirestore(it.second)
         }
-        streakDataStore.resetStreak()
+        streakDataStore.resetStreak(firestore, auth)
     }
 
     private fun isInitialNotesPopulated() {
@@ -211,7 +214,7 @@ class MainViewModel @Inject constructor(
         Log.d(TAG, "dataSync: ...")
 //        sync streaks info
         viewModelScope.launch(Dispatchers.IO) {
-            streakDataStore.sync()
+            streakDataStore.sync(firestore, auth)
             creditSubscriptionDataStore.sync()
         }
         firestore
@@ -415,28 +418,6 @@ class MainViewModel @Inject constructor(
     }
 
 
-    private fun checkCredit() {
-        Log.d(TAG, "checkCredit: check")
-        viewModelScope.launch(Dispatchers.IO) {
-            /*  Log.d(TAG, "checkCredit: init")
-              if (FirebaseAuth.getInstance().currentUser == null) {
-                  Log.d(TAG, "checkCredit: returned because there is no current user")
-                  return@launch
-              }
-              val uid = FirebaseAuth.getInstance().currentUser!!.uid
-              Log.d(TAG, "checkCredit: $uid")
-              val newCreditAndEndIn = _creditAndEndIn.value.checkCredit(
-                  uid,
-                  sharedPreferences
-              )
-              Log.d(TAG, "checkCredit: $newCreditAndEndIn")
-              if (newCreditAndEndIn != null) {
-                  _creditAndEndIn.value = newCreditAndEndIn
-                  Log.d(TAG, "checkCredit: new credit $newCreditAndEndIn")
-              }*/
-        }
-    }
-
     private val _isPro = MutableStateFlow(false)
     val isPro: StateFlow<Boolean> = _isPro
 
@@ -446,7 +427,6 @@ class MainViewModel @Inject constructor(
             delay(2000)
             if (isPro) {
                 Log.d(TAG, "updatePro: ")
-                checkCredit()
                 creditSubscriptionDataStore.sync()
             }
         }
@@ -538,7 +518,13 @@ class MainViewModel @Inject constructor(
             }
 
             else -> {
-                _creditAndSubscriptionInfo.value.credit.monthlyNoteCount <= NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
+                Log.d(TAG, "quota:${_creditAndSubscriptionInfo.value.credit.monthlyNoteCount} ")
+                Log.d(TAG, "quota:${NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY} ")
+                Log.d(
+                    TAG,
+                    "quota:${_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth()} "
+                )
+                _creditAndSubscriptionInfo.value.credit.monthlyNoteCount < NOTE_CREATTION_LIMT_NON_PREMIUM_AUTH_MONTHLY || (!_creditAndSubscriptionInfo.value.credit.lastUpdated.toDate().time.isSameMonth())
 
             }
         }

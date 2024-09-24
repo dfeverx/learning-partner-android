@@ -7,4 +7,7 @@
     <string name="scheduled_notification_channel_id">scheduled notification\n</string>
     <string name="scheduled_notification_name">Attempt notification\n</string>
     <string name="scheduled_notification_description">Notify you about the next attempt level</string>
+    <string name="scan_note_shortcut_short_label">Scan note</string>
+    <string name="scan_note_shortcut_long_label">"Scan your study material "</string>
+    <string name="scan_note_disabled_message">Scan note dissabled\n</string>
 </resources>

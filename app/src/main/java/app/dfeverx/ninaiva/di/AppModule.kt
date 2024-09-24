@@ -120,11 +120,9 @@ object AppModule {
     @Provides
     @Singleton
     fun provideStreakDataStore(
-        @ApplicationContext context: Context,
-        firestore: FirebaseFirestore,
-        auth: FirebaseAuth
+        @ApplicationContext context: Context
     ): StreakDataStore {
-        return StreakDataStore(context, firestore, auth)
+        return StreakDataStore.getInstance(context)
     }
 
 

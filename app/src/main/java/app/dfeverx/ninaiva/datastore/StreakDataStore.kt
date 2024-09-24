@@ -1,5 +1,6 @@
 package app.dfeverx.ninaiva.datastore
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
@@ -13,6 +14,7 @@ import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_COUNT
 import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_FROM
 import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_IS_INITIAL_FETCH
 import app.dfeverx.ninaiva.datastore.StreakDataStore.Companion.STREAKS_RESET_IS_ACKNOWLEDGED
+import app.dfeverx.ninaiva.ui.glance.StreakWidget
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Exclude
 import com.google.firebase.firestore.FirebaseFirestore
@@ -22,8 +24,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
 class StreakDataStore(
-    val context: Context, val firestore: FirebaseFirestore, val auth: FirebaseAuth
+    val context: Context,
 ) {
+
+
     private val TAG = "StreakDataStore"
     private val Context.dataStore by preferencesDataStore(name = "ninaiva.streak.datastore")
 
@@ -32,13 +36,28 @@ class StreakDataStore(
         val STREAKS_FROM = longPreferencesKey("from")
         val STREAKS_IS_INITIAL_FETCH = booleanPreferencesKey("initial")
         val STREAKS_RESET_IS_ACKNOWLEDGED = booleanPreferencesKey("ack")
+
+        @SuppressLint("StaticFieldLeak")
+        @Volatile
+        private var INSTANCE: StreakDataStore? = null
+
+        // Singleton instance of StreakDataStore
+        fun getInstance(context: Context): StreakDataStore {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: StreakDataStore(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 
     val streakInfoFlow: Flow<StreakInfo> = context.dataStore.data.map { preferences ->
-        StreakInfo(preferences[STREAKS_COUNT] ?: 0, preferences[STREAKS_FROM] ?: 0)
+        StreakInfo(
+            count = preferences[STREAKS_COUNT] ?: 0,
+            from = preferences[STREAKS_FROM] ?: 0,
+            isAcknowledgedRest = preferences[STREAKS_RESET_IS_ACKNOWLEDGED] ?: true
+        )
     }
 
-    suspend fun sync() {
+    suspend fun sync(firestore: FirebaseFirestore, auth: FirebaseAuth) {
 //        todo: check already synced
         Log.d(TAG, "sync: ...")
         if (auth.currentUser?.uid == null) {
@@ -63,7 +82,7 @@ class StreakDataStore(
 
     }
 
-    suspend fun incrementStreak() {
+    suspend fun incrementStreak(firestore: FirebaseFirestore, auth: FirebaseAuth) {
         Log.d(TAG, "incrementStreak: ...")
         context.dataStore.edit { preferences ->
             val prevStreaks = preferences[STREAKS_COUNT] ?: 0
@@ -93,26 +112,23 @@ class StreakDataStore(
                 Log.d(TAG, "incrementStreak: failure $it")
             }
 
-
+        StreakWidget.updateWidget(context)
     }
 
-    suspend fun resetStreak() {
+    suspend fun resetStreak(firestore: FirebaseFirestore, auth: FirebaseAuth) {
         Log.d(TAG, "resetStreak: ...")
-        context.dataStore.edit {
-            it[STREAKS_COUNT] = 0
-            it[STREAKS_FROM] = System.currentTimeMillis()
-            it[STREAKS_RESET_IS_ACKNOWLEDGED] = false
-        }
-        //        todo update to firestore
+
+        val resetStreak = StreakInfo(0, System.currentTimeMillis(), false)
+        resetStreak.toDataStore(context.dataStore)
         firestore
             .collection("users")
             .document(auth.currentUser!!.uid)
             .collection("streak")
             .document("v1")
             .set(
-                StreakInfo(0, System.currentTimeMillis())
-
+                resetStreak
             ).await()
+        StreakWidget.updateWidget(context)
     }
 }
 

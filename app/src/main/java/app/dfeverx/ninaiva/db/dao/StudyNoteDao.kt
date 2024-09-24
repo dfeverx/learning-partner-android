@@ -73,6 +73,11 @@ interface StudyNoteDao {
     @Query("SELECT * FROM study_notes WHERE nextLevelIn != 0")
     suspend fun getAllStudyNotes(): List<StudyNote>
 
+    @Query("SELECT * FROM study_notes WHERE nextLevelIn == 0 AND status == 4 AND currentStage == 1 ")
+    suspend fun getAllUnattemptedStudyNotes(): List<StudyNote>
+
+
+
 
     @Query("UPDATE study_notes SET   currentStage=1 , nextLevelIn=0  WHERE id=:noteId")
     suspend fun resetNoteProgress(noteId: String): Int

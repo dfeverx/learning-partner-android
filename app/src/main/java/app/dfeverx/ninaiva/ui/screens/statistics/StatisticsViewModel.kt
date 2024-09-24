@@ -16,6 +16,8 @@ import app.dfeverx.ninaiva.ui.screens.home.HomeViewModel.RepetitionSchedule
 import app.dfeverx.ninaiva.utils.TimePeriod
 import app.dfeverx.ninaiva.utils.getTimePeriod
 import app.dfeverx.ninaiva.utils.scheduleNotificationForNextAttempt
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,7 +34,9 @@ class StatisticsViewModel @Inject constructor(
     private val levelRepository: LevelRepository,
     private val alarmManager: AlarmManager,
     private val application: LearningPartnerApplication,
-    private val streakDataStore: StreakDataStore
+    private val streakDataStore: StreakDataStore,
+    private val firestore: FirebaseFirestore,
+    val auth: FirebaseAuth,
 ) : ViewModel() {
     private val TAG = "StatisticsViewModel"
     private val MINIMUM_THRESHOLD_ACCURACY_FOR_NEXT_LEVEL = 60
@@ -126,7 +130,7 @@ class StatisticsViewModel @Inject constructor(
         val studyNote = levelRepository.studyNoteById(noteId)
         if (studyNote.currentStage == stage && getTimePeriod(studyNote.nextLevelIn) == TimePeriod.TODAY) {
             Log.d(TAG, "giveStreak: eligible for streak")
-            streakDataStore.incrementStreak()
+            streakDataStore.incrementStreak(firestore,auth)
             _isGotStreak.value = true
         } else {
             Log.d(TAG, "giveStreak: not eligible for streak")

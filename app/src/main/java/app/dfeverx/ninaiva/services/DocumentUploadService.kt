@@ -103,7 +103,7 @@ class DocumentUploadService : Service() {
                 .setProgress(100, 0, true)
                 .build()
 
-        startForeground(1, notification)
+//        startForeground(1, notification)
 
         uploadTask
             .addOnProgressListener { taskSnapshot ->

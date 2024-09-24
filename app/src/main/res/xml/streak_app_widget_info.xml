@@ -1,0 +1,7 @@
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:resizeMode="horizontal"
+    android:previewImage="@drawable/streak_widget_preview"
+    android:minHeight="50dp"
+    android:minWidth="300dp"
+    >
+</appwidget-provider>
